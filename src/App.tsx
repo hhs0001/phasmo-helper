@@ -1,9 +1,10 @@
 import "./App.css";
+import "./styles/titlebar.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useNavigation } from "@/contexts/navigation-context";
-import { HowDoYouGotHere } from "./components/how-do-you";
+import { HowDoYouGotHere } from "@/components/how-do-you";
 
 function App() {
   const { currentPage, pages } = useNavigation();

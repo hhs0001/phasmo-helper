@@ -1,0 +1,24 @@
+/* Região arrastar janela */
+[data-tauri-drag-region] {
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Evitar que elementos dentro da região de arrasto sejam arrastáveis */
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] input,
+[data-tauri-drag-region] [role="button"],
+[data-tauri-drag-region] [type="button"] {
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+/* Ajustes específicos para os botões da barra de título */
+.site-header-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s;
+} 
