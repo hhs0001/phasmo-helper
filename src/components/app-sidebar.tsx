@@ -1,5 +1,5 @@
 import * as React from "react";
-import { IconInnerShadowTop } from "@tabler/icons-react";
+import TauriIcon from "@/assets/logo.svg";
 
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -43,7 +43,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   setCurrentPage("Ghosts");
                 }}
               >
-                <IconInnerShadowTop className="!size-5" />
+                <img
+                  src={TauriIcon}
+                  alt="Phasmo Helper Icon"
+                  className="!size-5"
+                />
                 <span className="text-base font-semibold">Phasmo Helper</span>
               </a>
             </SidebarMenuButton>
