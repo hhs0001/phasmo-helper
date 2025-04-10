@@ -1,5 +1,5 @@
 import * as React from "react";
-import TauriIcon from "@/assets/logo.svg";
+import { PhasmoHelperLogo } from "@/components/phasmo-logo";
 
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -43,11 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   setCurrentPage("Ghosts");
                 }}
               >
-                <img
-                  src={TauriIcon}
-                  alt="Phasmo Helper Icon"
-                  className="!size-5"
-                />
+                <PhasmoHelperLogo className="!size-5 text-primary" />
                 <span className="text-base font-semibold">Phasmo Helper</span>
               </a>
             </SidebarMenuButton>

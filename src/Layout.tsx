@@ -1,3 +1,14 @@
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-svh">{children}</div>;
+import { Toaster } from "@/components/ui/sonner";
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
+  return (
+    <>
+      {children}
+      <Toaster />
+    </>
+  );
 }

@@ -1,3 +1,5 @@
+import ConfigPage from "@/pages/config";
+import GhostsPage from "@/pages/ghosts";
 import {
   IconGhost,
   IconInfoCircle,
@@ -10,7 +12,7 @@ export const pagesConfig = {
     title: "Ghosts",
     url: "/ghosts",
     icon: IconGhost,
-    component: () => <div className="p-4">Página de Fantasmas</div>,
+    component: () => <GhostsPage />,
   },
   Games: {
     title: "Games",
@@ -22,7 +24,7 @@ export const pagesConfig = {
     title: "Settings",
     url: "/settings",
     icon: IconSettings,
-    component: () => <div className="p-4">Página de Configurações</div>,
+    component: () => <ConfigPage />,
   },
   About: {
     title: "About",
