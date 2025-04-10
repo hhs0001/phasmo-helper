@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { AudioPlayer } from "@/components/ui/audio-player";
 import {
   Sheet,
   SheetContent,
@@ -186,6 +187,18 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
                           controls
                           className="object-cover w-full h-full"
                         />
+                      )}
+                      {media.type === "audio" && (
+                        <div className="flex flex-col justify-center items-center w-full h-full bg-card/50 backdrop-blur-sm rounded-md overflow-hidden p-2">
+                          <p className="text-xs text-center text-muted-foreground mb-1 truncate w-full">
+                            {media.description || "Áudio do fantasma"}
+                          </p>
+                          <AudioPlayer
+                            src={media.url}
+                            className="w-full"
+                            compact={true}
+                          />
+                        </div>
                       )}
                     </div>
                   ))}

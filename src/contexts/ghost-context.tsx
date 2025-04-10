@@ -44,7 +44,7 @@ export interface GhostBehavior {
 }
 
 interface Media {
-  type: "image" | "video" | "gif";
+  type: "image" | "video" | "gif" | "audio";
   url: string;
   description: string;
 }
