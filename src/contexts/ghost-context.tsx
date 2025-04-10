@@ -43,6 +43,11 @@ export interface GhostBehavior {
   gameMode?: GameMode; // Comportamento específico para um modo de jogo
 }
 
+interface Media {
+  type: "image" | "video" | "gif";
+  url: string;
+  description: string;
+}
 export interface Ghost {
   id: string;
   name: string;
@@ -56,6 +61,7 @@ export interface Ghost {
   speed: GhostSpeed; // Categoria geral de velocidade
   hasLOS: boolean; // Se o fantasma acelera quando tem linha de visão com o jogador
   speedDetails: SpeedDetails; // Detalhes específicos de velocidade
+  media?: Media[]; // Imagens, vídeos ou gifs relacionados ao fantasma
 }
 
 export interface FilterOptions {

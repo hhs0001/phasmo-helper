@@ -33,8 +33,11 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
   const {
     selectedGhost,
     selectGhost,
-    evidenceTranslations,
+    evidenceTranslation,
     isGuaranteedEvidence,
+    formatSpeedDescription,
+    getPossibleEvidenceCombinations,
+    gameMode,
   } = useGhostData();
 
   // Quando o componente é montado ou o ghostId muda, seleciona o fantasma
@@ -43,6 +46,22 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
       selectGhost(ghostId);
     }
   }, [ghostId, selectGhost]);
+
+  // Obtém todas as possíveis combinações de evidências para um fantasma
+  const getEvidenceCombinationsDisplay = () => {
+    if (!selectedGhost || (gameMode !== "Nightmare" && gameMode !== "Insanity"))
+      return "";
+
+    const combinations = getPossibleEvidenceCombinations(
+      selectedGhost,
+      gameMode
+    );
+
+    // Retorna uma representação das combinações para mostrar ao usuário
+    return combinations
+      .map((combo) => combo.map((ev) => evidenceTranslation[ev]).join(", "))
+      .join(" | ");
+  };
 
   // Conteúdo compartilhado para ambos os modos de exibição
   const renderGhostContent = () => {
@@ -63,11 +82,42 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
                       : "outline"
                   }
                 >
-                  {evidenceTranslations[evidence]}
+                  {evidenceTranslation[evidence]}
                   {isGuaranteedEvidence(selectedGhost, evidence) &&
                     " (Garantida)"}
                 </Badge>
               ))}
+            </div>
+
+            {selectedGhost &&
+              (gameMode === "Nightmare" || gameMode === "Insanity") && (
+                <div className="text-sm mt-2">
+                  <p className="font-medium">
+                    Combinações possíveis no modo{" "}
+                    {gameMode === "Nightmare" ? "Pesadelo" : "Insanidade"}:
+                  </p>
+                  <p>{getEvidenceCombinationsDisplay()}</p>
+                </div>
+              )}
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Velocidade e Caçada</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Velocidade:</span>
+                <span>{selectedGhost.speedDetails.description}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Line of Sight (LoS):</span>
+                <span>{selectedGhost.hasLOS ? "Sim" : "Não"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Limiar de caçada:</span>
+                <span>{selectedGhost.huntThreshold}% de sanidade</span>
+              </div>
             </div>
           </div>
 
@@ -104,16 +154,6 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
               </ul>
             </ScrollArea>
           </div>
-
-          {selectedGhost.huntThreshold && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Limiar de Caçada</h3>
-                <p>{selectedGhost.huntThreshold}% de sanidade</p>
-              </div>
-            </>
-          )}
 
           {selectedGhost.media && selectedGhost.media.length > 0 && (
             <>
@@ -161,9 +201,14 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
   if (application.showInfo === "panel") {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto bg-accent p-4">
+        <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto bg-secondary p-4">
           <SheetHeader>
-            <SheetTitle>{selectedGhost?.name}</SheetTitle>
+            <div className="flex justify-between items-center">
+              <SheetTitle>{selectedGhost?.name}</SheetTitle>
+              <Badge variant="outline">
+                {selectedGhost && formatSpeedDescription(selectedGhost)}
+              </Badge>
+            </div>
             <SheetDescription>{selectedGhost?.description}</SheetDescription>
           </SheetHeader>
 
@@ -180,9 +225,14 @@ export default function ShowInfo({ isOpen, onClose, ghostId }: ShowInfoProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto bg-accent">
+      <DialogContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto bg-secondary">
         <DialogHeader>
-          <DialogTitle>{selectedGhost?.name}</DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle>{selectedGhost?.name}</DialogTitle>
+            <Badge variant="outline">
+              {selectedGhost && formatSpeedDescription(selectedGhost)}
+            </Badge>
+          </div>
           <DialogDescription>{selectedGhost?.description}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[400px]">

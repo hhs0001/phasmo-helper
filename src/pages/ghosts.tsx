@@ -18,18 +18,10 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import ShowInfo from "@/components/show-info";
 import {
   Ghost,
   GameMode,
@@ -56,8 +48,6 @@ export default function GhostsPage() {
     formatSanityThreshold,
     isGuaranteedEvidence,
     getPossibleEvidenceCombinations,
-    selectGhost,
-    selectedGhost,
     refreshFromAPI,
     isLoading,
     lastUpdate,
@@ -72,14 +62,17 @@ export default function GhostsPage() {
   } = useGhostData();
 
   const { gameMode, setGameMode } = useGhost();
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [selectedGhostId, setSelectedGhostId] = useState<string | undefined>(
+    undefined
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("evidences");
 
   // Função para abrir o modal com detalhes do fantasma
   const handleGhostClick = (ghost: Ghost) => {
-    selectGhost(ghost.id);
-    setIsSheetOpen(true);
+    setSelectedGhostId(ghost.id);
+    setIsInfoOpen(true);
   };
 
   // Função para atualizar os dados da API
@@ -493,115 +486,12 @@ export default function GhostsPage() {
         )}
       </div>
 
-      {/* Modal de Detalhes */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto bg-secondary p-4">
-          <SheetHeader>
-            <div className="flex justify-between items-center">
-              <SheetTitle>{selectedGhost?.name}</SheetTitle>
-              <Badge variant="outline">
-                {selectedGhost && formatSpeedDescription(selectedGhost)}
-              </Badge>
-            </div>
-            <SheetDescription>{selectedGhost?.description}</SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Evidências</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedGhost?.evidences.map((evidence) => (
-                  <Badge
-                    key={evidence}
-                    variant={
-                      isGuaranteedEvidence(selectedGhost, evidence)
-                        ? "secondary"
-                        : "outline"
-                    }
-                  >
-                    {evidenceTranslation[evidence]}
-                    {isGuaranteedEvidence(selectedGhost, evidence) &&
-                      " (Garantida)"}
-                  </Badge>
-                ))}
-              </div>
-
-              {selectedGhost &&
-                (gameMode === "Nightmare" || gameMode === "Insanity") && (
-                  <div className="text-sm mt-2">
-                    <p className="font-medium">
-                      Combinações possíveis no modo{" "}
-                      {gameMode === "Nightmare" ? "Pesadelo" : "Insanidade"}:
-                    </p>
-                    <p>{getEvidenceCombinationsDisplay(selectedGhost)}</p>
-                  </div>
-                )}
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">
-                Velocidade e Caçada
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Velocidade:</span>
-                  <span>{selectedGhost?.speedDetails.description}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Line of Sight (LoS):</span>
-                  <span>{selectedGhost?.hasLOS ? "Sim" : "Não"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Limiar de caçada:</span>
-                  <span>{selectedGhost?.huntThreshold}% de sanidade</span>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Força</h3>
-              <p>{selectedGhost?.strengths}</p>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Fraqueza</h3>
-              <p>{selectedGhost?.weaknesses}</p>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Comportamentos</h3>
-              <ScrollArea className="h-[200px]">
-                <ul className="space-y-2">
-                  {selectedGhost?.behaviors.map((behavior, index) => (
-                    <li key={index} className="text-sm">
-                      • {behavior.description}
-                      {behavior.gameMode && (
-                        <Badge className="ml-2" variant="outline">
-                          {behavior.gameMode}
-                        </Badge>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </ScrollArea>
-            </div>
-
-            <div className="pt-4">
-              <Button onClick={() => setIsSheetOpen(false)} className="w-full">
-                Fechar
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Componente ShowInfo para detalhes do fantasma */}
+      <ShowInfo
+        isOpen={isInfoOpen}
+        onClose={() => setIsInfoOpen(false)}
+        ghostId={selectedGhostId}
+      />
     </main>
   );
 }
