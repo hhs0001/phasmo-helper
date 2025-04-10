@@ -5,9 +5,13 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useNavigation } from "@/contexts/navigation-context";
 import { HowDoYouGotHere } from "@/components/how-do-you";
+import { useKeybinds } from "@/hooks/use-keybinds";
 
 function App() {
   const { currentPage, pages } = useNavigation();
+
+  // Inicializa o sistema de keybinds
+  useKeybinds();
 
   // Encontrar o componente da página atual
   const currentPageKey = currentPage as keyof typeof pages;

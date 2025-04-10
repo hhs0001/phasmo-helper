@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useGhostData } from "@/hooks/use-ghost";
 import { useGhost } from "@/contexts/ghost-context";
+import { useAppConfig } from "@/hooks/use-config";
 import {
   Card,
   CardContent,
@@ -62,6 +63,7 @@ export default function GhostsPage() {
   } = useGhostData();
 
   const { gameMode, setGameMode } = useGhost();
+  const { config } = useAppConfig();
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [selectedGhostId, setSelectedGhostId] = useState<string | undefined>(
     undefined
@@ -123,6 +125,25 @@ export default function GhostsPage() {
   // Reseta todos os filtros
   const handleResetFilters = () => {
     resetFilters();
+  };
+
+  // Função para encontrar a keybind associada a uma evidência
+  const getEvidenceKeybind = (evidence: Evidence): string | null => {
+    // Mapeamento inverso de evidências para IDs de keybind
+    const evidenceToKeybindId: Record<Evidence, string> = {
+      EMF: "EMF5",
+      DotsProjector: "DOTSProjector",
+      GhostOrb: "GhostOrb",
+      GhostWriting: "GhostWriting",
+      Fingerprints: "Fingerprints",
+      SpiritBox: "SpiritBox",
+      FreezingTemps: "Freezing",
+    };
+
+    const keybindId = evidenceToKeybindId[evidence];
+    if (!keybindId || !config.keybinds[keybindId]?.enabled) return null;
+
+    return config.keybinds[keybindId].key;
   };
 
   // Renderiza o ícone apropriado para o estado de inclusão da evidência
@@ -251,24 +272,47 @@ export default function GhostsPage() {
           className="p-4 bg-card rounded-md border"
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {allEvidences.map((evidence) => (
-              <button
-                key={evidence}
-                onClick={() => toggleEvidenceInclusion(evidence)}
-                className={`p-3 flex items-center justify-between rounded-md border ${getEvidenceButtonClass(
-                  evidence
-                )} hover:bg-muted transition-colors`}
-              >
-                <span>{evidenceTranslation[evidence]}</span>
-                {renderEvidenceStateIcon(evidence)}
-              </button>
-            ))}
+            {allEvidences.map((evidence) => {
+              const keybind = getEvidenceKeybind(evidence);
+              return (
+                <button
+                  key={evidence}
+                  onClick={() => toggleEvidenceInclusion(evidence)}
+                  className={`p-3 flex items-center justify-between rounded-md border ${getEvidenceButtonClass(
+                    evidence
+                  )} hover:bg-muted transition-colors`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{evidenceTranslation[evidence]}</span>
+                    {keybind && (
+                      <Badge variant="secondary" className="text-xs">
+                        {keybind}
+                      </Badge>
+                    )}
+                  </div>
+                  {renderEvidenceStateIcon(evidence)}
+                </button>
+              );
+            })}
           </div>
+
           <div className="mt-4 text-sm text-muted-foreground">
             <p className="flex items-center gap-2">
               <InfoCircledIcon className="h-4 w-4" />
               Clique para alternar entre incluir, excluir ou neutro.
             </p>
+
+            {/* Atalho para resetar os filtros */}
+            {config.keybinds.resetEvidence?.enabled && (
+              <p className="flex items-center gap-2 mt-2">
+                <ResetIcon className="h-4 w-4" />
+                Pressione{" "}
+                <Badge variant="outline">
+                  {config.keybinds.resetEvidence.key}
+                </Badge>{" "}
+                para resetar todos os filtros.
+              </p>
+            )}
           </div>
         </TabsContent>
 
