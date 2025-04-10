@@ -152,13 +152,22 @@ export function useGhostData() {
 
   // Função para formatar a descrição de velocidade
   const formatSpeedDescription = (ghost: Ghost): string => {
-    let description = speedTranslations[ghost.speed];
+    // Obter a velocidade base em m/s
+    const baseSpeed = ghost.speedDetails.baseSpeed;
 
-    if (ghost.hasLOS) {
-      description += " (LoS)";
+    // Se o fantasma tem LoS e multiplicador, mostrar o intervalo de velocidade
+    if (ghost.hasLOS && ghost.speedDetails.losMultiplier) {
+      const maxSpeed = baseSpeed * ghost.speedDetails.losMultiplier;
+      return `${baseSpeed.toFixed(1)} - ${maxSpeed.toFixed(1)} m/s`;
     }
 
-    return description;
+    // Se tem velocidade variável, indicar isso
+    if (ghost.speedDetails.variableSpeed) {
+      return `${baseSpeed.toFixed(1)} m/s (variável)`;
+    }
+
+    // Caso padrão: apenas a velocidade base
+    return `${baseSpeed.toFixed(1)} m/s`;
   };
 
   // Função para formatar o limiar de sanidade
