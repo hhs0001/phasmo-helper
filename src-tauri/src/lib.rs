@@ -97,8 +97,10 @@ lazy_static! {
         let mut map = HashMap::new();
         map.insert("ShiftLeft", Key::ShiftLeft);
         map.insert("ShiftRight", Key::ShiftRight);
+        map.insert("Shift", Key::ShiftLeft); // Adiciona "Shift" como alias para ShiftLeft
         map.insert("ControlLeft", Key::ControlLeft);
         map.insert("ControlRight", Key::ControlRight);
+        map.insert("Ctrl", Key::ControlLeft); // Adiciona "Ctrl" como alias para ControlLeft
         map.insert("AltLeft", Key::Alt); // Corresponde a Alt esquerdo (rdev usa Key::Alt)
         map.insert("Alt", Key::Alt); // Alias comum para Alt esquerdo
         map.insert("AltRight", Key::AltGr); // Corresponde a AltGr ou Alt direito (rdev usa Key::AltGr)

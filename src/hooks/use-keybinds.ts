@@ -52,11 +52,19 @@ export function useKeybinds() {
       const keybindsData = Object.entries(config.keybinds)
         .filter(([_, keybind]) => keybind.enabled)
         .map(([id, keybind]) => {
-          // Divide a string (ex: "Ctrl+A") em partes
+          // Divide a string (ex: "Shift+1") em partes
           const keys = keybind.key.split("+");
+
+          // Formata cada chave para o formato esperado pela biblioteca rdev
+          // Precisamos garantir que os nomes das teclas correspondam aos mapeados no backend
+          const formattedKeys = keys.map((key) => {
+            // Para teclas como "Shift", "Ctrl", "Alt" já mapeamos no backend
+            return key;
+          });
+
           // A ação enviada para o backend será o ID original do keybind
           const action = id;
-          return [id, keys, action]; // Formato: [String, Vec<String>, String]
+          return [id, formattedKeys, action]; // Formato: [String, Vec<String>, String]
         });
 
       if (keybindsData.length === 0) {
