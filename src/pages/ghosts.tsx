@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import ShowInfo from "@/components/show-info";
+import GameTimers from "@/components/game-timers";
 import {
   Ghost,
   GameMode,
@@ -529,6 +530,14 @@ export default function GhostsPage() {
           </div>
         )}
       </div>
+
+      {/* Componente de Timers */}
+      <GameTimers
+        difficulty={
+          gameMode.toLowerCase() as "amateur" | "intermediate" | "professional"
+        }
+        mapSize="medium"
+      />
 
       {/* Componente ShowInfo para detalhes do fantasma */}
       <ShowInfo

@@ -6,6 +6,7 @@ import type { Evidence } from "@/contexts/ghost-context";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { toast } from "sonner";
+import { eventBus } from "@/lib/events";
 
 export function useKeybinds() {
   const { currentPage } = useNavigation();
@@ -26,6 +27,14 @@ export function useKeybinds() {
     Fingerprints: "Fingerprints",
     SpiritBox: "SpiritBox",
     Freezing: "FreezingTemps",
+  };
+
+  // Mapeamento de IDs de keybinds para ações de timer
+  const keybindActionToTimerEvent: Record<string, string> = {
+    huntTimer: "timer:start-hunt",
+    smudgeTimer: "timer:start-smudge",
+    colldownTimer: "timer:start-cooldown",
+    huntTrack: "timer:start-hunt-track",
   };
 
   const disableKeybinds = useCallback(async () => {
@@ -154,21 +163,34 @@ export function useKeybinds() {
         unlistenFn = await listen<string>("keybind-triggered", (event) => {
           const action = event.payload;
 
+          // Verificar se é uma ação de evidência
           if (action === "resetEvidence") {
             resetFilters();
-          } else {
-            const evidence = keybindActionToEvidence[action];
-            if (evidence) {
-              toggleEvidenceInclusion(evidence);
-            } else {
-              console.warn(
-                `Ação de keybind desconhecida recebida do backend: ${action}`
-              );
-              toast.warning("Atalho desconhecido", {
-                description: `Ação de atalho "${action}" não reconhecida.`,
-              });
-            }
+            toast.info("Filtros de evidência resetados");
+            return;
           }
+
+          // Verificar se é uma ação de evidência
+          const evidence = keybindActionToEvidence[action];
+          if (evidence) {
+            toggleEvidenceInclusion(evidence);
+            return;
+          }
+
+          // Verificar se é uma ação de timer
+          const timerEvent = keybindActionToTimerEvent[action];
+          if (timerEvent) {
+            eventBus.emit(timerEvent as any);
+            return;
+          }
+
+          // Se chegou aqui, a ação não é reconhecida
+          console.warn(
+            `Ação de keybind desconhecida recebida do backend: ${action}`
+          );
+          toast.warning("Atalho desconhecido", {
+            description: `Ação de atalho "${action}" não reconhecida.`,
+          });
         });
         listenerAttached.current = true;
       } catch (error) {

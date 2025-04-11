@@ -10,8 +10,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Card } from "./ui/card";
-
 export function NavSecondary({
   items,
   onNavItemClick,
@@ -27,7 +25,6 @@ export function NavSecondary({
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
-        <Card className="w-full"></Card>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
