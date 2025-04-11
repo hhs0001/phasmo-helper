@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { KeybindConfig } from "@/contexts/config-context";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
+import { setConfig } from "@/lib/storeLoader";
 
 type KeybindRowProps = {
   id: string;
@@ -200,7 +202,8 @@ export function KeybindRow({ id, keybind }: KeybindRowProps) {
 }
 
 export function KeybindConfig() {
-  const { keybinds, isLoading } = useAppConfig();
+  const { keybinds, isLoading, config } = useAppConfig();
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Desabilita os keybinds na página de configuração (redundante, mas para garantir)
   useEffect(() => {
@@ -210,6 +213,28 @@ export function KeybindConfig() {
     });
   }, []);
 
+  // Detecta mudanças nos keybinds
+  useEffect(() => {
+    setHasChanges(true);
+  }, [keybinds]);
+
+  // Função para salvar manualmente as keybinds
+  const handleSaveKeybinds = async () => {
+    try {
+      await setConfig("appConfig", config);
+      toast.success("Atalhos salvos com sucesso!", {
+        description: "As configurações de teclas de atalho foram salvas.",
+      });
+      setHasChanges(false);
+    } catch (error) {
+      console.error("Erro ao salvar keybinds:", error);
+      toast.error("Erro ao salvar atalhos", {
+        description:
+          "Não foi possível salvar as configurações de teclas de atalho.",
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="py-4">Carregando configurações...</div>;
   }
@@ -217,7 +242,18 @@ export function KeybindConfig() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium">Teclas de Atalho</h2>
+        <h2 className="text-lg font-medium flex gap-2 items-center">
+          Teclas de Atalho
+          <div className="flex justify-end">
+            <Button
+              variant="default"
+              onClick={handleSaveKeybinds}
+              disabled={!hasChanges}
+            >
+              Salvar Atalhos
+            </Button>
+          </div>
+        </h2>
         <div className="flex gap-2 items-center">
           <span className="text-sm text-muted-foreground">
             Suporta combinações (ex: Ctrl+F1)
@@ -239,6 +275,10 @@ export function KeybindConfig() {
         <p className="mt-2 text-amber-500">
           Atenção: Teclas simples sem modificadores (como letras ou números
           sozinhos) podem interferir na digitação normal.
+        </p>
+        <p className="mt-2 text-blue-500">
+          Importante: Clique em "Salvar Atalhos" após fazer alterações para
+          garantir que sejam aplicadas.
         </p>
       </div>
     </div>

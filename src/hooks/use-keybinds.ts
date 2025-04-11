@@ -15,6 +15,7 @@ export function useKeybinds() {
   const listenerAttached = useRef(false);
   const lastConfigRef = useRef(config.keybinds);
   const keybindsProcessingRef = useRef(false);
+  const initialRenderRef = useRef(true);
 
   // Mapeamento de IDs de keybinds (ações) para evidências
   const keybindActionToEvidence: Record<string, Evidence> = {
@@ -53,14 +54,20 @@ export function useKeybinds() {
     lastConfigRef.current = config.keybinds;
 
     // Se a configuração não mudou, não precisamos recarregar os atalhos
-    if (!configChanged && !keybindsProcessingRef.current) {
+    if (!configChanged && !initialRenderRef.current) {
       keybindsProcessingRef.current = false;
       return;
     }
 
+    initialRenderRef.current = false;
+
     try {
+      // Garantir que todos os atalhos antigos sejam removidos antes de adicionar novos
       await invoke("disable_keybinds");
       await invoke("remove_all_keybinds");
+
+      // Esperar um momento para garantir que o backend concluiu a remoção
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       const keybindsData = Object.entries(config.keybinds)
         .filter(([_, keybind]) => keybind.enabled)
@@ -90,8 +97,42 @@ export function useKeybinds() {
         return;
       }
 
-      await invoke("add_keybinds_batch", { keybindsData });
-      await invoke("enable_keybinds");
+      try {
+        await invoke("add_keybinds_batch", { keybindsData });
+        await invoke("enable_keybinds");
+      } catch (batchError) {
+        // Se falhar ao adicionar em lote, tente um por um
+        console.warn(
+          "Falha ao adicionar keybinds em lote, tentando individualmente:",
+          batchError
+        );
+
+        // Removendo novamente para garantir
+        await invoke("disable_keybinds");
+        await invoke("remove_all_keybinds");
+
+        // Adicionando um por um para identificar problemas específicos
+        const addedIds = new Set();
+        for (const [id, keys, action] of keybindsData) {
+          // Pular IDs duplicados
+          if (addedIds.has(id)) {
+            console.warn(`Pulando keybind duplicado: ${id}`);
+            continue;
+          }
+
+          try {
+            await invoke("add_keybind", { id, keyStrings: keys, action });
+            addedIds.add(id);
+          } catch (individualError) {
+            console.error(`Erro ao adicionar keybind ${id}:`, individualError);
+            toast.error(`Erro ao adicionar atalho ${id}`, {
+              description: `${individualError}`,
+            });
+          }
+        }
+
+        await invoke("enable_keybinds");
+      }
     } catch (error) {
       console.error("Erro ao habilitar/adicionar keybinds no backend:", error);
       toast.error("Erro ao habilitar atalhos", {
@@ -149,24 +190,28 @@ export function useKeybinds() {
     };
   }, [resetFilters, toggleEvidenceInclusion]);
 
-  // Desativar/ativar atalhos com base na página atual
+  // Um único useEffect para gerenciar o estado ativo/inativo e atualizar os atalhos
   useEffect(() => {
     const isConfigPage = currentPage === "Config";
+    const shouldBeActive = !isConfigPage;
 
-    if (isConfigPage && isActive) {
-      setIsActive(false);
-      disableKeybinds();
-    } else if (!isConfigPage && !isActive) {
-      setIsActive(true);
+    // Primeira renderização ou mudança de página
+    if (shouldBeActive !== isActive) {
+      setIsActive(shouldBeActive);
+
+      if (!shouldBeActive) {
+        disableKeybinds();
+      } else if (shouldBeActive) {
+        enableKeybinds();
+      }
+      return;
     }
-  }, [currentPage, disableKeybinds, isActive]);
 
-  // Atualizar atalhos apenas quando necessário
-  useEffect(() => {
+    // Mudanças nas configurações quando ativo
     if (isActive) {
       enableKeybinds();
     }
-  }, [enableKeybinds]);
+  }, [currentPage, config.keybinds, disableKeybinds, enableKeybinds, isActive]);
 
   return {
     isActive,

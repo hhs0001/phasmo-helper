@@ -27,10 +27,7 @@ impl KeybindManager {
     }
 
     fn add_keybind(&mut self, id: String, keys: Vec<Key>, action: String) -> Result<(), String> {
-        if self.keybinds.contains_key(&id) {
-            return Err(format!("Keybind com ID '{}' já existe", id));
-        }
-
+        // Substituir o keybind existente se o ID já existir, em vez de retornar erro
         self.keybinds.insert(
             id.clone(),
             Keybind {
