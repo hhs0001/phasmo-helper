@@ -31,23 +31,31 @@ export type AppConfig = {
 // Configuração padrão
 export const DEFAULT_CONFIG: AppConfig = {
   keybinds: {
-    EMF5: { key: "F1", description: "EMF 5", enabled: true },
-    DOTSProjector: {
-      key: "F2",
-      description: "D.O.T.S Projector",
+    EMF5: { key: "Shift+1", description: "EMF 5", enabled: true },
+    SpiritBox: { key: "Shift+2", description: "Spirit Box", enabled: true },
+    Fingerprints: {
+      key: "Shift+3",
+      description: "Fingerprints",
       enabled: true,
     },
-    GhostOrb: { key: "F3", description: "Ghost Orb", enabled: true },
-    GhostWriting: { key: "F4", description: "Ghost Writing", enabled: true },
-    Fingerprints: { key: "F5", description: "Fingerprints", enabled: true },
-    SpiritBox: { key: "F6", description: "Spirit Box", enabled: true },
+    GhostOrb: { key: "Shift+4", description: "Ghost Orb", enabled: true },
+    GhostWriting: {
+      key: "Shift+5",
+      description: "Ghost Writing",
+      enabled: true,
+    },
     Freezing: {
-      key: "F7",
+      key: "Shift+6",
       description: "Freezing Temperatures",
       enabled: true,
     },
+    DOTSProjector: {
+      key: "Shift+7",
+      description: "D.O.T.S Projector",
+      enabled: true,
+    },
     resetEvidence: {
-      key: "F8",
+      key: "Shift+8",
       description: "Reset Evidence",
       enabled: true,
     },
@@ -57,17 +65,17 @@ export const DEFAULT_CONFIG: AppConfig = {
       enabled: true,
     },
     smudgeTimer: {
-      key: "F9",
+      key: "Shift+9",
       description: "Smudge Timer",
       enabled: true,
     },
     colldownTimer: {
-      key: "F10",
+      key: "Shift+0",
       description: "Colldown Timer",
       enabled: true,
     },
     huntTimer: {
-      key: "F11",
+      key: "Shift+-",
       description: "Hunt Timer",
       enabled: true,
     },
