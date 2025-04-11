@@ -5,13 +5,14 @@ import { useEffect } from "react";
 export default function ConfigPage() {
   const { disableKeybinds } = useKeybinds();
 
-  // Garante que as keybinds sejam desativadas quando a página de configuração é carregada
+  // Garante que as keybinds sejam desativadas diretamente no backend quando a página de configuração é carregada
   useEffect(() => {
+    // Desativa keybinds no backend
     disableKeybinds();
-    return () => {
-      // Não precisamos reativar aqui, pois o hook useKeybinds já faz isso
-      // quando detecta a mudança de página
-    };
+
+    // Função de limpeza - não precisamos fazer nada aqui
+    // O hook useKeybinds já cuidará de reativar quando a página mudar
+    return () => {};
   }, [disableKeybinds]);
 
   return (

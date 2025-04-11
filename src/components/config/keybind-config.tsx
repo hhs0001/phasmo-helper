@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { KeybindConfig } from "@/contexts/config-context";
+import { invoke } from "@tauri-apps/api/core";
 
 type KeybindRowProps = {
   id: string;
@@ -200,6 +201,14 @@ export function KeybindRow({ id, keybind }: KeybindRowProps) {
 
 export function KeybindConfig() {
   const { keybinds, isLoading } = useAppConfig();
+
+  // Desabilita os keybinds na página de configuração (redundante, mas para garantir)
+  useEffect(() => {
+    // Chamada direta para backend para desabilitar keybinds
+    invoke("disable_keybinds").catch((err) => {
+      console.error("Erro ao desabilitar keybinds no componente:", err);
+    });
+  }, []);
 
   if (isLoading) {
     return <div className="py-4">Carregando configurações...</div>;
