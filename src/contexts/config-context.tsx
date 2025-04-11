@@ -60,7 +60,7 @@ export const DEFAULT_CONFIG: AppConfig = {
       enabled: true,
     },
     huntTrack: {
-      key: "SPACE",
+      key: "Space",
       description: "Hunt Track",
       enabled: true,
     },

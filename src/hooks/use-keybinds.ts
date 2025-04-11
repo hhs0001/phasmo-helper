@@ -5,14 +5,16 @@ import { useGhost } from "@/contexts/ghost-context";
 import type { Evidence } from "@/contexts/ghost-context";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
+import { toast } from "sonner";
 
 export function useKeybinds() {
   const { currentPage } = useNavigation();
   const { config } = useAppConfig();
   const { toggleEvidenceInclusion, resetFilters } = useGhost();
-  // isActive controla o estado local para determinar se devemos ativar keybinds
   const [isActive, setIsActive] = useState(currentPage !== "Config");
-  const listenerAttached = useRef(false); // Para garantir que o listener seja anexado apenas uma vez
+  const listenerAttached = useRef(false);
+  const lastConfigRef = useRef(config.keybinds);
+  const keybindsProcessingRef = useRef(false);
 
   // Mapeamento de IDs de keybinds (ações) para evidências
   const keybindActionToEvidence: Record<string, Evidence> = {
@@ -25,82 +27,91 @@ export function useKeybinds() {
     Freezing: "FreezingTemps",
   };
 
-  // Função para desabilitar keybinds no backend
   const disableKeybinds = useCallback(async () => {
+    if (keybindsProcessingRef.current) return;
+    keybindsProcessingRef.current = true;
+
     try {
-      // Desabilita a checagem no backend
       await invoke("disable_keybinds");
-      // Remove os keybinds registrados no backend para evitar acionamentos acidentais
       await invoke("remove_all_keybinds");
-      console.log("Keybinds desabilitadas e removidas no backend");
     } catch (error) {
       console.error("Erro ao desabilitar/remover keybinds no backend:", error);
+      toast.error("Erro ao desabilitar atalhos", {
+        description: "Não foi possível desabilitar os atalhos de teclado.",
+      });
+    } finally {
+      keybindsProcessingRef.current = false;
     }
   }, []);
 
-  // Função para habilitar keybinds no backend
   const enableKeybinds = useCallback(async () => {
-    // Se não estiver ativo (ex: na página de config), não faz nada
-    if (!isActive) return;
+    if (!isActive || keybindsProcessingRef.current) return;
+    keybindsProcessingRef.current = true;
+
+    // Verificar se as configurações de keybinds realmente mudaram
+    const configChanged = lastConfigRef.current !== config.keybinds;
+    lastConfigRef.current = config.keybinds;
+
+    // Se a configuração não mudou, não precisamos recarregar os atalhos
+    if (!configChanged && !keybindsProcessingRef.current) {
+      keybindsProcessingRef.current = false;
+      return;
+    }
 
     try {
-      // Garante que keybinds anteriores sejam removidos antes de adicionar novos
       await invoke("disable_keybinds");
       await invoke("remove_all_keybinds");
 
-      // Formata os keybinds para o backend Rust
       const keybindsData = Object.entries(config.keybinds)
         .filter(([_, keybind]) => keybind.enabled)
         .map(([id, keybind]) => {
-          // Divide a string (ex: "Shift+1") em partes
           const keys = keybind.key.split("+");
-
-          // Formata cada chave para o formato esperado pela biblioteca rdev
-          // Precisamos garantir que os nomes das teclas correspondam aos mapeados no backend
           const formattedKeys = keys.map((key) => {
-            // Para teclas como "Shift", "Ctrl", "Alt" já mapeamos no backend
+            // Normalizar nomes de teclas especiais
+            if (key.toUpperCase() === "SPACE") return "Space";
+            if (key.toUpperCase() === "CTRL") return "Ctrl";
+            if (key.toUpperCase() === "ALT") return "Alt";
+            if (key.toUpperCase() === "SHIFT") return "Shift";
+
+            // Normalizar teclas de letras (A-Z)
+            if (/^[A-Z]$/.test(key)) return key;
+            if (/^[a-z]$/.test(key)) return key.toUpperCase();
+
+            // Teclas de símbolos e números permanecem inalteradas
             return key;
           });
 
-          // A ação enviada para o backend será o ID original do keybind
           const action = id;
-          return [id, formattedKeys, action]; // Formato: [String, Vec<String>, String]
+          return [id, formattedKeys, action];
         });
 
       if (keybindsData.length === 0) {
-        console.log("Não há keybinds ativos para registrar no backend");
-        // Mesmo sem binds, habilitamos o manager para futuros adds
         await invoke("enable_keybinds");
         return;
       }
 
-      console.log("Enviando keybinds para o backend:", keybindsData);
-
-      // Adiciona os keybinds em lote no backend
       await invoke("add_keybinds_batch", { keybindsData });
-
-      // Habilita a checagem de keybinds no backend
       await invoke("enable_keybinds");
-
-      console.log(
-        `${keybindsData.length} keybinds adicionados e habilitados no backend`
-      );
     } catch (error) {
       console.error("Erro ao habilitar/adicionar keybinds no backend:", error);
+      toast.error("Erro ao habilitar atalhos", {
+        description: "Não foi possível configurar os atalhos de teclado.",
+      });
+    } finally {
+      keybindsProcessingRef.current = false;
     }
   }, [isActive, config.keybinds]);
 
-  // Efeito para ouvir eventos do backend
+  // Configurar o listener de eventos uma única vez
   useEffect(() => {
-    if (listenerAttached.current) return; // Evita anexar múltiplos listeners
+    if (listenerAttached.current) return;
 
     let unlistenFn: UnlistenFn | undefined;
 
     const setupListener = async () => {
       try {
         unlistenFn = await listen<string>("keybind-triggered", (event) => {
-          console.log("Backend keybind triggered:", event.payload);
-          const action = event.payload; // A 'action' é o ID do keybind
+          const action = event.payload;
 
           if (action === "resetEvidence") {
             resetFilters();
@@ -112,53 +123,50 @@ export function useKeybinds() {
               console.warn(
                 `Ação de keybind desconhecida recebida do backend: ${action}`
               );
+              toast.warning("Atalho desconhecido", {
+                description: `Ação de atalho "${action}" não reconhecida.`,
+              });
             }
           }
         });
         listenerAttached.current = true;
-        console.log("Listener para 'keybind-triggered' anexado.");
       } catch (error) {
         console.error("Falha ao anexar listener 'keybind-triggered':", error);
+        toast.error("Erro ao configurar atalhos", {
+          description:
+            "Não foi possível inicializar o sistema de atalhos de teclado.",
+        });
       }
     };
 
     setupListener();
 
-    // Função de limpeza para desanexar o listener
     return () => {
       if (unlistenFn) {
         unlistenFn();
         listenerAttached.current = false;
-        console.log("Listener para 'keybind-triggered' desanexado.");
       }
     };
-  }, [resetFilters, toggleEvidenceInclusion, keybindActionToEvidence]);
+  }, [resetFilters, toggleEvidenceInclusion]);
 
-  // Efeito para habilitar/desabilitar baseado na página
+  // Desativar/ativar atalhos com base na página atual
   useEffect(() => {
     const isConfigPage = currentPage === "Config";
-    setIsActive(!isConfigPage); // Atualiza o estado local isActive
 
-    if (isConfigPage) {
-      console.log("Entrando na página Config: Desabilitando keybinds...");
+    if (isConfigPage && isActive) {
+      setIsActive(false);
       disableKeybinds();
-    } else {
-      console.log("Saindo da página Config: Habilitando keybinds...");
-      // enableKeybinds será chamado pelo useEffect abaixo
+    } else if (!isConfigPage && !isActive) {
+      setIsActive(true);
     }
-  }, [currentPage, disableKeybinds]);
+  }, [currentPage, disableKeybinds, isActive]);
 
-  // Efeito para re-registrar keybinds quando a config muda ou quando sai da pág de config
+  // Atualizar atalhos apenas quando necessário
   useEffect(() => {
-    // Só (re)habilita se estivermos ativos (fora da pág de config)
     if (isActive) {
-      console.log(
-        "Configuração de keybinds mudou ou isActive mudou para true: Re-habilitando keybinds..."
-      );
-      // A função enableKeybinds já limpa os binds antigos antes de adicionar os novos
       enableKeybinds();
     }
-  }, [config.keybinds, isActive, enableKeybinds]);
+  }, [enableKeybinds]);
 
   return {
     isActive,

@@ -6,6 +6,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useNavigation } from "@/contexts/navigation-context";
 import { HowDoYouGotHere } from "@/components/how-do-you";
 import { useKeybinds } from "@/hooks/use-keybinds";
+import { BackendErrorListener } from "@/components/backend-error-listener";
+import { Toaster } from "@/components/ui/sonner";
 
 function App() {
   const { currentPage, pages } = useNavigation();
@@ -19,19 +21,25 @@ function App() {
     pages[currentPageKey]?.component || (() => <HowDoYouGotHere />);
 
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader title={pages[currentPageKey]?.title || "Phasmo Helper"} />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <CurrentPageComponent />
+    <>
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader title={pages[currentPageKey]?.title || "Phasmo Helper"} />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                <CurrentPageComponent />
+              </div>
             </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+
+      {/* Componentes globais */}
+      <BackendErrorListener />
+      <Toaster />
+    </>
   );
 }
 
