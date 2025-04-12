@@ -72,6 +72,7 @@ export function useGhostData() {
     normal: "Normal",
     fast: "Rápido",
     veryFast: "Muito Rápido",
+    variableSpeed: "Velocidade Variável",
   };
 
   // Tradução de modos de jogo

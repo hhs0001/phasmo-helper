@@ -27,6 +27,7 @@ export const GhostSpeedSchema = z.enum([
   "normal",
   "fast",
   "veryFast",
+  "variableSpeed",
 ]);
 
 // Esquemas para tipos mais complexos
