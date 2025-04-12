@@ -1,3 +1,4 @@
+import AboutPage from "@/pages/about";
 import ConfigPage from "@/pages/config";
 import GhostsPage from "@/pages/ghosts";
 import {
@@ -30,7 +31,7 @@ export const pagesConfig = {
     title: "About",
     url: "/about",
     icon: IconInfoCircle,
-    component: () => <div className="p-4">Página de Sobre</div>,
+    component: () => <AboutPage />,
   },
 };
 
