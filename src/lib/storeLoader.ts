@@ -1,6 +1,11 @@
 import { load } from "@tauri-apps/plugin-store";
 import { fetch } from "@tauri-apps/plugin-http";
-import type { Ghost, GhostData } from "@/contexts/ghost-context";
+import {
+  GhostSchema,
+  GhostDataSchema,
+  type Ghost,
+  type GhostData,
+} from "@/types/ghost-schema";
 
 const store = await load("store.json", { autoSave: true });
 
@@ -37,11 +42,27 @@ export async function getGhost(
       }
 
       // Extrair os dados da resposta
-      const ghostsData = (await response.json()) as Ghost[];
+      const ghostsData = await response.json();
+
+      // Validar os dados recebidos com Zod
+      let validatedGhosts: Ghost[] = [];
+
+      try {
+        // Tentamos validar o array de fantasmas
+        validatedGhosts = ghostsData.map((ghost: any) =>
+          GhostSchema.parse(ghost)
+        );
+      } catch (validationError) {
+        console.error(
+          "Erro na validação dos dados dos fantasmas:",
+          validationError
+        );
+        throw new Error("Os dados da API não estão no formato esperado");
+      }
 
       // Converter o array de fantasmas para um objeto indexado por ID
       const ghostsById: Record<string, Ghost> = {};
-      for (const ghost of ghostsData) {
+      for (const ghost of validatedGhosts) {
         ghostsById[ghost.id] = ghost;
       }
 
@@ -50,11 +71,14 @@ export async function getGhost(
       await ghostStore.set("ghosts", ghostsById);
       await ghostStore.set("lastUpdate", currentTimestamp);
 
-      // Retornar os dados atualizados
-      return {
+      // Criar e validar o objeto de dados completo
+      const ghostData: GhostData = {
         ghosts: ghostsById,
         lastUpdate: currentTimestamp,
       };
+
+      // Validar o objeto completo
+      return GhostDataSchema.parse(ghostData);
     }
 
     // Obter os dados dos fantasmas do armazenamento local
@@ -63,11 +87,14 @@ export async function getGhost(
     const lastUpdate =
       ((await ghostStore.get("lastUpdate")) as string | null) || null;
 
-    // Retornar no formato esperado pelo contexto
-    return {
+    // Criar o objeto de dados
+    const ghostData: GhostData = {
       ghosts,
       lastUpdate,
     };
+
+    // Validar e retornar os dados
+    return GhostDataSchema.parse(ghostData);
   } catch (error) {
     console.error("Erro ao obter dados dos fantasmas:", error);
 
@@ -77,6 +104,7 @@ export async function getGhost(
     const lastUpdate =
       ((await ghostStore.get("lastUpdate")) as string | null) || null;
 
+    // Criar o objeto de dados sem validação em caso de erro
     return {
       ghosts,
       lastUpdate,

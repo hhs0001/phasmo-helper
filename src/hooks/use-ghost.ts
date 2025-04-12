@@ -1,11 +1,11 @@
 import { useGhost } from "@/contexts/ghost-context";
-import type {
+import {
   Evidence,
   Ghost,
   GameMode,
   InclusionState,
   GhostSpeed,
-} from "@/contexts/ghost-context";
+} from "@/types/ghost-schema";
 
 /**
  * Hook personalizado para acessar e manipular os dados dos fantasmas do Phasmophobia
@@ -29,6 +29,8 @@ export function useGhostData() {
     resetFilters,
     refreshFromAPI,
     getEvidenceInclusionState,
+    isGuaranteedEvidence,
+    getPossibleEvidenceCombinations,
   } = useGhost();
 
   const selectedGhost = selectedGhostId
@@ -86,68 +88,6 @@ export function useGhostData() {
     include: "Incluir",
     exclude: "Excluir",
     neutral: "Neutro",
-  };
-
-  // Função para verificar se uma evidência é garantida para um fantasma
-  const isGuaranteedEvidence = (ghost: Ghost, evidence: Evidence): boolean => {
-    return ghost.guaranteedEvidences?.includes(evidence) || false;
-  };
-
-  // Função para obter combinações de evidências possíveis no modo pesadelo/insanidade
-  const getPossibleEvidenceCombinations = (
-    ghost: Ghost,
-    mode: GameMode
-  ): Evidence[][] => {
-    const guaranteedEvidences = ghost.guaranteedEvidences || [];
-    const normalEvidences = ghost.evidences.filter(
-      (ev) => !guaranteedEvidences.includes(ev)
-    );
-
-    // No modo normal, todas as evidências estão visíveis
-    if (mode !== "Nightmare" && mode !== "Insanity") {
-      return [ghost.evidences];
-    }
-
-    // Número de evidências visíveis além das garantidas
-    const visibleNormalEvidences = mode === "Nightmare" ? 2 : 1;
-
-    // Se o número de evidências normais é menor ou igual ao número de evidências visíveis
-    // então todas as combinações possíveis são as evidências normais juntamente com as garantidas
-    if (normalEvidences.length <= visibleNormalEvidences) {
-      return [ghost.evidences];
-    }
-
-    // Caso contrário, precisamos calcular todas as combinações possíveis
-    const combinations: Evidence[][] = [];
-
-    // Função recursiva para gerar combinações
-    const generateCombinations = (
-      startIdx: number,
-      currentCombo: Evidence[],
-      size: number
-    ) => {
-      // Se já temos o número desejado de evidências normais, adicionamos à lista
-      if (currentCombo.length === size) {
-        combinations.push([...guaranteedEvidences, ...currentCombo]);
-        return;
-      }
-
-      // Adicionamos cada evidência normal possível à combinação atual
-      for (let i = startIdx; i < normalEvidences.length; i++) {
-        currentCombo.push(normalEvidences[i]);
-        generateCombinations(i + 1, currentCombo, size);
-        currentCombo.pop();
-      }
-    };
-
-    // Geramos todas as combinações possíveis com o número correto de evidências normais
-    generateCombinations(
-      0,
-      [],
-      Math.min(visibleNormalEvidences, normalEvidences.length)
-    );
-
-    return combinations;
   };
 
   // Função para formatar a descrição de velocidade

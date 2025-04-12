@@ -6,73 +6,15 @@ import {
   ReactNode,
 } from "react";
 import { getGhost } from "@/lib/storeLoader";
-
-// Definição do tipo GhostData
-export interface GhostData {
-  ghosts: Record<string, Ghost>;
-  lastUpdate: string | null;
-}
-
-// Tipos
-export type GameMode =
-  | "Amateur"
-  | "Intermediate"
-  | "Professional"
-  | "Nightmare"
-  | "Insanity";
-export type Evidence =
-  | "EMF"
-  | "SpiritBox"
-  | "Fingerprints"
-  | "GhostOrb"
-  | "GhostWriting"
-  | "FreezingTemps"
-  | "DotsProjector";
-export type InclusionState = "include" | "exclude" | "neutral";
-export type GhostSpeed = "verySlow" | "slow" | "normal" | "fast" | "veryFast";
-
-export interface SpeedDetails {
-  baseSpeed: number; // m/s
-  losMultiplier?: number; // multiplicador quando tem linha de visão
-  description: string;
-  variableSpeed?: boolean; // se a velocidade varia (como no caso do Deogen)
-}
-
-export interface GhostBehavior {
-  description: string;
-  gameMode?: GameMode; // Comportamento específico para um modo de jogo
-}
-
-interface Media {
-  type: "image" | "video" | "gif" | "audio";
-  url: string;
-  description: string;
-}
-export interface Ghost {
-  id: string;
-  name: string;
-  description: string;
-  evidences: Evidence[];
-  guaranteedEvidences?: Evidence[]; // Evidências garantidas (como o orbe do Mímico)
-  strengths: string;
-  weaknesses: string;
-  behaviors: GhostBehavior[];
-  huntThreshold: number; // % de sanidade para começar a caçar
-  speed: GhostSpeed; // Categoria geral de velocidade
-  hasLOS: boolean; // Se o fantasma acelera quando tem linha de visão com o jogador
-  speedDetails: SpeedDetails; // Detalhes específicos de velocidade
-  media?: Media[]; // Imagens, vídeos ou gifs relacionados ao fantasma
-}
-
-export interface FilterOptions {
-  evidenceInclusion: Record<Evidence, InclusionState>;
-  speed: Record<GhostSpeed, boolean>;
-  hasLOS: InclusionState;
-  huntThreshold: {
-    min: number | null;
-    max: number | null;
-  };
-}
+import {
+  GameMode,
+  Evidence,
+  InclusionState,
+  GhostSpeed,
+  Ghost,
+  GhostData,
+  FilterOptions,
+} from "@/types/ghost-schema";
 
 interface GhostContextType {
   gameMode: GameMode;
@@ -342,7 +284,7 @@ export function GhostProvider({ children }: { children: ReactNode }) {
 
   // Obtém o estado atual de inclusão de uma evidência
   const getEvidenceInclusionState = (evidence: Evidence): InclusionState => {
-    return filterOptions.evidenceInclusion[evidence];
+    return filterOptions.evidenceInclusion[evidence] || "neutral";
   };
 
   // Filtra os fantasmas com base nos filtros e modo de jogo
