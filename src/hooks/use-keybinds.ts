@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigation } from "@/contexts/navigation-context";
 import { useAppConfig } from "./use-config";
 import { useGhost } from "@/contexts/ghost-context";
-import type { Evidence } from "@/contexts/ghost-context";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 import { eventBus } from "@/lib/events";
+import { Evidence } from "@/types/ghost-schema";
 
 export function useKeybinds() {
   const { currentPage } = useNavigation();

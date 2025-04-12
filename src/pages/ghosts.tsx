@@ -24,12 +24,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import ShowInfo from "@/components/show-info";
 import GameTimers from "@/components/game-timers";
-import {
-  Ghost,
-  GameMode,
-  GhostSpeed,
-  Evidence,
-} from "@/contexts/ghost-context";
 import { toast } from "sonner";
 import {
   InfoCircledIcon,
@@ -39,6 +33,7 @@ import {
   Cross2Icon,
   DashIcon,
 } from "@radix-ui/react-icons";
+import { Evidence, GameMode, Ghost, GhostSpeed } from "@/types/ghost-schema";
 
 export default function GhostsPage() {
   const {
