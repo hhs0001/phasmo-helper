@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use os_info::{get as get_os_info, Type, Version};
 use rdev::{EventType, Key};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -187,6 +188,64 @@ fn string_to_key(key_str: &str) -> Result<Key, String> {
         .ok_or_else(|| format!("Tecla '{}' não reconhecida ou não mapeada", key_str))
 }
 
+fn get_os_details() -> (String, String, Option<String>) {
+    let os = get_os_info();
+    let os_name = match os.os_type() {
+        Type::Windows => "Windows".to_string(),
+        Type::Macos => "macOS".to_string(),
+        _ => os.os_type().to_string(), // Outros sistemas
+    };
+    let os_version = match os.version() {
+        Version::Semantic(major, minor, _) => format!("{}.{}", major, minor),
+        Version::Custom(v) => v.to_string(),
+        _ => os.version().to_string(),
+    };
+    let os_build = match os.version() {
+        Version::Custom(v) => Some(v.to_string()), // Pode conter build no Windows
+        _ => None,
+    };
+    (os_name, os_version, os_build)
+}
+
+fn can_apply_effect(effect: &str, os_name: &str, os_version: &str, os_build: Option<&str>) -> bool {
+    match (os_name, effect) {
+        ("Windows", "acrylic") => {
+            // Acrylic é suportado no Windows 10 (versão 1803+) e Windows 11
+            if os_version.starts_with("10") {
+                if let Some(build) = os_build {
+                    build >= "1803" // Build 1803 é o mínimo para acrylic
+                } else {
+                    true // Assume suporte se build não estiver disponível
+                }
+            } else if os_version.starts_with("11") {
+                true // Windows 11 suporta acrylic
+            } else {
+                false
+            }
+        }
+        ("Windows", "mica") => {
+            // Mica é suportado apenas no Windows 11, build 22000+
+            if os_version.starts_with("11") {
+                if let Some(build) = os_build {
+                    build >= "22000"
+                } else {
+                    true // Assume suporte se build não estiver disponível
+                }
+            } else {
+                false
+            }
+        }
+        ("macOS", "vibrancy") => {
+            // Vibrancy é suportado no macOS 10.10+
+            if let Ok(version) = os_version.parse::<f32>() {
+                version >= 10.10
+            } else {
+                false
+            }
+        }
+        _ => false, // Efeito ou SO não suportado
+    }
+}
 #[tauri::command]
 fn add_keybind(id: String, key_strings: Vec<String>, action: String) -> Result<(), String> {
     let mut keys = Vec::new();
@@ -282,9 +341,23 @@ pub fn run() {
                 .get_webview_window("main")
                 .expect("Não foi possível encontrar a janela principal 'main'");
 
+            let (os_name, os_version, os_build) = get_os_details();
+
+            // Verifica se o efeito apply_acrylic pode ser aplicado
             #[cfg(target_os = "windows")]
-            apply_acrylic(&window, Some((18, 18, 18, 125)))
-                .expect("Unsupported platform! 'apply_blur' is only supported on Windows");
+            {
+                if can_apply_effect("acrylic", &os_name, &os_version, os_build.as_deref()) {
+                    apply_acrylic(&window, Some((18, 18, 18, 125)))
+                        .expect("Falha ao aplicar acrylic: versão do Windows não suportada");
+                } else {
+                    println!(
+                        "Acrylic não suportado nesta versão do Windows: {} {}",
+                        os_version,
+                        os_build.unwrap_or_default()
+                    );
+                    // Aqui você pode aplicar um efeito alternativo ou deixar sem efeito
+                }
+            }
 
             let app_handle = app.handle().clone();
             let pressed_keys = Arc::new(Mutex::new(HashSet::new()));

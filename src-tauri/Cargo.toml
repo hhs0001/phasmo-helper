@@ -27,3 +27,4 @@ tauri-plugin-store = "2"
 tauri-plugin-http = "2"
 rdev = "0.5.3"  # Adicionando a biblioteca rdev para captura de eventos de teclado
 lazy_static = "1.4.0"  # Para variáveis estáticas com inicialização lazy
+os_info = "3"

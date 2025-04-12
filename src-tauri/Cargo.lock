@@ -2588,6 +2588,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "os_info"
+version = "3.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a604e53c24761286860eba4e2c8b23a0161526476b1de520139d69cdb85a6b5"
+dependencies = [
+ "log",
+ "serde",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2658,6 +2669,7 @@ name = "phasmo-helper"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
+ "os_info",
  "rdev",
  "serde",
  "serde_json",
