@@ -8,7 +8,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <>
       {children}
-      <Toaster />
+      <Toaster position="top-center" />
     </>
   );
 }
