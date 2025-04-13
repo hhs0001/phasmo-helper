@@ -12,7 +12,6 @@ import "@/stores/ghost-store";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    {/* Removidos NavigationProvider, ConfigProvider e GhostProvider, substituídos por Zustand */}
     <ThemeProvider>
       <Layout>
         <App />

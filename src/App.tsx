@@ -7,7 +7,6 @@ import { useNavigationStore } from "@/stores/navigation-store";
 import { HowDoYouGotHere } from "@/components/how-do-you";
 import { useKeybinds } from "@/hooks/use-keybinds";
 import { BackendErrorListener } from "@/components/backend-error-listener";
-import { Toaster } from "@/components/ui/sonner";
 
 function App() {
   const { currentPage, pages } = useNavigationStore();
@@ -38,7 +37,6 @@ function App() {
 
       {/* Componentes globais */}
       <BackendErrorListener />
-      <Toaster />
     </>
   );
 }

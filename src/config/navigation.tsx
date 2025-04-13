@@ -10,25 +10,25 @@ import {
 
 export const pagesConfig = {
   Ghosts: {
-    title: "Ghosts",
+    title: "Fantasmas",
     url: "/ghosts",
     icon: IconGhost,
     component: () => <GhostsPage />,
   },
   Games: {
-    title: "Games",
+    title: "Jogos",
     url: "/games",
     icon: IconDeviceGamepad,
     component: () => <div className="p-4">Página de Jogos</div>,
   },
   Settings: {
-    title: "Settings",
+    title: "Configurações",
     url: "/settings",
     icon: IconSettings,
     component: () => <ConfigPage />,
   },
   About: {
-    title: "About",
+    title: "Sobre",
     url: "/about",
     icon: IconInfoCircle,
     component: () => <AboutPage />,
