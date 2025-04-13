@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useGhostData } from "@/hooks/use-ghost";
-import { useGhost } from "@/contexts/ghost-context";
 import { useAppConfig } from "@/hooks/use-config";
 import {
   Card,
@@ -34,6 +33,7 @@ import {
   DashIcon,
 } from "@radix-ui/react-icons";
 import { Evidence, GameMode, Ghost, GhostSpeed } from "@/types/ghost-schema";
+import { useGhostStore } from "@/stores/ghost-store";
 
 export default function GhostsPage() {
   const {
@@ -58,7 +58,7 @@ export default function GhostsPage() {
     ghostsMap,
   } = useGhostData();
 
-  const { gameMode, setGameMode } = useGhost();
+  const { gameMode, setGameMode } = useGhostStore();
   const { config } = useAppConfig();
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [selectedGhostId, setSelectedGhostId] = useState<string | undefined>(

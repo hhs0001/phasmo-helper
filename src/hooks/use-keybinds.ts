@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigation } from "@/contexts/navigation-context";
-import { useAppConfig } from "./use-config";
-import { useGhost } from "@/contexts/ghost-context";
+import { useNavigationStore } from "@/stores/navigation-store";
+import { useConfigStore } from "@/stores/config-store";
+import { useGhost } from "@/hooks/use-ghost";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { toast } from "sonner";
@@ -9,8 +9,8 @@ import { eventBus } from "@/lib/events";
 import { Evidence } from "@/types/ghost-schema";
 
 export function useKeybinds() {
-  const { currentPage } = useNavigation();
-  const { config } = useAppConfig();
+  const currentPage = useNavigationStore((state) => state.currentPage);
+  const config = useConfigStore((state) => state.config);
   const { toggleEvidenceInclusion, resetFilters } = useGhost();
   const [isActive, setIsActive] = useState(currentPage !== "Config");
   const listenerAttached = useRef(false);

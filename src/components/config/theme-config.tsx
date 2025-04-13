@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AppConfig } from "@/contexts/config-context";
+import { AppConfig } from "@/stores/config-store";
 import { useTheme } from "../theme-provider";
 
 type ThemeOption = {

@@ -3,7 +3,7 @@ import { useAppConfig } from "@/hooks/use-config";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { KeybindConfig } from "@/contexts/config-context";
+import type { KeybindConfig } from "@/stores/config-store";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { setConfig } from "@/lib/storeLoader";

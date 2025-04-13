@@ -1,9 +1,9 @@
 import { IconArrowLeft, IconQuestionMark } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { DEFAULT_PAGE, useNavigation } from "@/contexts/navigation-context";
+import { DEFAULT_PAGE, useNavigationStore } from "@/stores/navigation-store";
 
 export function HowDoYouGotHere() {
-  const { setCurrentPage } = useNavigation();
+  const { setCurrentPage } = useNavigationStore();
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-12">

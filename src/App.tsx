@@ -3,14 +3,14 @@ import "./styles/titlebar.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { useNavigation } from "@/contexts/navigation-context";
+import { useNavigationStore } from "@/stores/navigation-store";
 import { HowDoYouGotHere } from "@/components/how-do-you";
 import { useKeybinds } from "@/hooks/use-keybinds";
 import { BackendErrorListener } from "@/components/backend-error-listener";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
-  const { currentPage, pages } = useNavigation();
+  const { currentPage, pages } = useNavigationStore();
 
   // Inicializa o sistema de keybinds
   useKeybinds();

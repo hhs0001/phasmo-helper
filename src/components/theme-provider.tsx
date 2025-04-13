@@ -1,4 +1,4 @@
-import { useConfig } from "@/contexts/config-context";
+import { useConfigStore } from "@/stores/config-store";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light" | "system";
@@ -22,7 +22,7 @@ const initialState: ThemeProviderState = {
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 function useThemeValue() {
-  return useConfig().config.application.theme;
+  return useConfigStore((state) => state.config.application.theme);
 }
 
 export function ThemeProvider({

@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import { create } from "zustand";
 import { getConfig, setConfig } from "@/lib/storeLoader";
 
 // Definição dos tipos para as configurações
@@ -92,9 +86,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
 };
 
-type ConfigContextType = {
+interface ConfigState {
   config: AppConfig;
   isLoading: boolean;
+  // Ações
+  initialize: () => Promise<void>;
   updateConfig: <K extends keyof AppConfig>(
     key: K,
     value: AppConfig[K]
@@ -102,52 +98,45 @@ type ConfigContextType = {
   updateKeybind: (id: string, keybind: Partial<KeybindConfig>) => Promise<void>;
   updateOverlay: (overlay: Partial<AppConfig["overlay"]>) => Promise<void>;
   resetConfig: () => Promise<void>;
-};
+}
 
-const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
+export const useConfigStore = create<ConfigState>((set, get) => ({
+  config: DEFAULT_CONFIG,
+  isLoading: true,
 
-export function ConfigProvider({ children }: { children: ReactNode }) {
-  const [config, setConfigState] = useState<AppConfig>(DEFAULT_CONFIG);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Carrega as configurações ao iniciar
-  useEffect(() => {
-    async function loadConfig() {
-      try {
-        setIsLoading(true);
-        const storedConfig = await getConfig("appConfig");
-        if (storedConfig) {
-          // Mescla as configurações armazenadas com as padrões para garantir que novos campos sejam incluídos
-          setConfigState({ ...DEFAULT_CONFIG, ...storedConfig });
-        }
-      } catch (error) {
-        console.error("Erro ao carregar configurações:", error);
-      } finally {
-        setIsLoading(false);
+  initialize: async () => {
+    try {
+      set({ isLoading: true });
+      const storedConfig = await getConfig("appConfig");
+      if (storedConfig) {
+        // Mescla as configurações armazenadas com as padrões para garantir que novos campos sejam incluídos
+        set({ config: { ...DEFAULT_CONFIG, ...storedConfig } });
       }
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+    } finally {
+      set({ isLoading: false });
     }
+  },
 
-    loadConfig();
-  }, []);
-
-  // Atualiza uma configuração específica
-  const updateConfig = async <K extends keyof AppConfig>(
+  updateConfig: async <K extends keyof AppConfig>(
     key: K,
     value: AppConfig[K]
   ) => {
     try {
+      const { config } = get();
       const newConfig = { ...config, [key]: value };
-      setConfigState(newConfig);
+      set({ config: newConfig });
       await setConfig("appConfig", newConfig);
     } catch (error) {
       console.error(`Erro ao atualizar configuração ${String(key)}:`, error);
       throw error;
     }
-  };
+  },
 
-  // Atualiza um keybind específico
-  const updateKeybind = async (id: string, keybind: Partial<KeybindConfig>) => {
+  updateKeybind: async (id: string, keybind: Partial<KeybindConfig>) => {
     try {
+      const { config } = get();
       const currentKeybind = config.keybinds[id] || DEFAULT_CONFIG.keybinds[id];
       if (!currentKeybind) {
         throw new Error(`Keybind ${id} não encontrado`);
@@ -157,56 +146,37 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       const newKeybinds = { ...config.keybinds, [id]: updatedKeybind };
 
       const newConfig = { ...config, keybinds: newKeybinds };
-      setConfigState(newConfig);
+      set({ config: newConfig });
       await setConfig("appConfig", newConfig);
     } catch (error) {
       console.error(`Erro ao atualizar keybind ${id}:`, error);
       throw error;
     }
-  };
+  },
 
-  // Atualiza as configurações do overlay
-  const updateOverlay = async (overlay: Partial<AppConfig["overlay"]>) => {
+  updateOverlay: async (overlay: Partial<AppConfig["overlay"]>) => {
     try {
+      const { config } = get();
       const newOverlay = { ...config.overlay, ...overlay };
       const newConfig = { ...config, overlay: newOverlay };
-      setConfigState(newConfig);
+      set({ config: newConfig });
       await setConfig("appConfig", newConfig);
     } catch (error) {
       console.error("Erro ao atualizar overlay:", error);
       throw error;
     }
-  };
+  },
 
-  // Reseta todas as configurações para o padrão
-  const resetConfig = async () => {
+  resetConfig: async () => {
     try {
-      setConfigState(DEFAULT_CONFIG);
+      set({ config: DEFAULT_CONFIG });
       await setConfig("appConfig", DEFAULT_CONFIG);
     } catch (error) {
       console.error("Erro ao resetar configurações:", error);
       throw error;
     }
-  };
+  },
+}));
 
-  const value: ConfigContextType = {
-    config,
-    isLoading,
-    updateConfig,
-    updateKeybind,
-    updateOverlay,
-    resetConfig,
-  };
-
-  return (
-    <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
-  );
-}
-
-export function useConfig() {
-  const context = useContext(ConfigContext);
-  if (context === undefined) {
-    throw new Error("useConfig deve ser usado dentro de um ConfigProvider");
-  }
-  return context;
-}
+// Inicializa o estado de configuração ao importar a store
+useConfigStore.getState().initialize();

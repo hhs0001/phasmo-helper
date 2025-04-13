@@ -1,7 +1,7 @@
-import { useGhost } from "@/contexts/ghost-context";
+import { useGhostStore } from "@/stores/ghost-store";
 import {
-  Evidence,
   Ghost,
+  Evidence,
   GameMode,
   InclusionState,
   GhostSpeed,
@@ -12,36 +12,17 @@ import {
  * Abstrai o acesso ao contexto e fornece métodos úteis para a interface do usuário
  */
 export function useGhostData() {
-  const {
-    gameMode,
-    setGameMode,
-    ghostData,
-    isLoading,
-    error,
-    selectedGhostId,
-    selectGhost,
-    possibleGhosts,
-    filterOptions,
-    toggleEvidenceInclusion,
-    toggleSpeedFilter,
-    toggleLOSFilter,
-    updateSanityThreshold,
-    resetFilters,
-    refreshFromAPI,
-    getEvidenceInclusionState,
-    isGuaranteedEvidence,
-    getPossibleEvidenceCombinations,
-  } = useGhost();
+  const state = useGhostStore();
 
-  const selectedGhost = selectedGhostId
-    ? ghostData.ghosts[selectedGhostId]
+  const selectedGhost = state.selectedGhostId
+    ? state.ghostData.ghosts[state.selectedGhostId]
     : null;
 
   // Mapa de todos os fantasmas para acesso rápido
-  const ghostsMap = ghostData.ghosts || {};
+  const ghostsMap = state.ghostData.ghosts || {};
 
   // Data da última atualização
-  const lastUpdate = ghostData.lastUpdate;
+  const lastUpdate = state.ghostData.lastUpdate;
 
   // Evidencias disponíveis para filtro
   const allEvidences: Evidence[] = [
@@ -137,34 +118,73 @@ export function useGhostData() {
   };
 
   return {
-    gameMode,
-    setGameMode,
-    ghostData,
-    ghostsMap,
-    isLoading,
-    error,
+    // Estados
+    gameMode: state.gameMode,
+    ghostData: state.ghostData,
+    isLoading: state.isLoading,
+    error: state.error,
     selectedGhost,
-    selectGhost,
-    possibleGhosts,
+    ghostsMap,
+    lastUpdate,
+    possibleGhosts: state.possibleGhosts,
+    filterOptions: state.filterOptions,
     allEvidences,
     evidenceTranslation,
     speedTranslations,
     gameModeTranslation,
     inclusionStateTranslation,
-    filterOptions,
-    toggleEvidenceInclusion,
-    toggleSpeedFilter,
-    toggleLOSFilter,
-    updateSanityThreshold,
-    resetFilters,
-    refreshFromAPI,
-    getEvidenceInclusionState,
+
+    // Ações
+    setGameMode: state.setGameMode,
+    selectGhost: state.selectGhost,
+    toggleEvidenceInclusion: state.toggleEvidenceInclusion,
+    toggleSpeedFilter: state.toggleSpeedFilter,
+    toggleLOSFilter: state.toggleLOSFilter,
+    updateSanityThreshold: state.updateSanityThreshold,
+    resetFilters: state.resetFilters,
+    refreshFromAPI: state.refreshFromAPI,
+
+    // Funções auxiliares
+    getEvidenceInclusionState: state.getEvidenceInclusionState,
     getInclusionStateIcon,
     getSpeedTranslation,
-    isGuaranteedEvidence,
-    getPossibleEvidenceCombinations,
+    isGuaranteedEvidence: state.isGuaranteedEvidence,
+    getPossibleEvidenceCombinations: state.getPossibleEvidenceCombinations,
     formatSpeedDescription,
     formatSanityThreshold,
-    lastUpdate,
+  };
+}
+
+/**
+ * Hook personalizado para acessar e manipular os dados de fantasmas
+ * Abstrai o acesso ao Zustand Store e fornece uma API consistente com a versão anterior
+ */
+export function useGhost() {
+  const state = useGhostStore();
+
+  return {
+    // Estados
+    gameMode: state.gameMode,
+    ghostData: state.ghostData,
+    isLoading: state.isLoading,
+    error: state.error,
+    selectedGhostId: state.selectedGhostId,
+    possibleGhosts: state.possibleGhosts,
+    filterOptions: state.filterOptions,
+
+    // Ações
+    setGameMode: state.setGameMode,
+    selectGhost: state.selectGhost,
+    toggleEvidenceInclusion: state.toggleEvidenceInclusion,
+    toggleSpeedFilter: state.toggleSpeedFilter,
+    toggleLOSFilter: state.toggleLOSFilter,
+    updateSanityThreshold: state.updateSanityThreshold,
+    resetFilters: state.resetFilters,
+    refreshFromAPI: state.refreshFromAPI,
+
+    // Funções auxiliares
+    getEvidenceInclusionState: state.getEvidenceInclusionState,
+    isGuaranteedEvidence: state.isGuaranteedEvidence,
+    getPossibleEvidenceCombinations: state.getPossibleEvidenceCombinations,
   };
 }

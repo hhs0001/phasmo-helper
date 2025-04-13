@@ -11,10 +11,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useNavigation, DEFAULT_PAGE } from "@/contexts/navigation-context";
+import { useNavigationStore, DEFAULT_PAGE } from "@/stores/navigation-store";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { navigation, setCurrentPage, pages } = useNavigation();
+  const { navigation, pages, setCurrentPage } = useNavigationStore();
 
   const handleNavItemClick = (url: string) => {
     const pageEntries = Object.entries(pages);

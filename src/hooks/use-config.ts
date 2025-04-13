@@ -1,9 +1,9 @@
-import { useConfig } from "@/contexts/config-context";
-import type { AppConfig } from "@/contexts/config-context";
+import { useConfigStore } from "@/stores/config-store";
+import type { AppConfig } from "@/stores/config-store";
 
 /**
  * Hook personalizado para acessar e modificar as configurações do aplicativo
- * Abstrai o acesso ao Tauri Store e fornece métodos para manipular as configurações
+ * Abstrai o acesso ao Zustand Store e fornece métodos para manipular as configurações
  */
 export function useAppConfig() {
   const {
@@ -13,7 +13,7 @@ export function useAppConfig() {
     updateKeybind,
     updateOverlay,
     resetConfig,
-  } = useConfig();
+  } = useConfigStore();
 
   // Métodos específicos para manipular keybinds
   const setKeybind = async (id: string, key: string) => {
