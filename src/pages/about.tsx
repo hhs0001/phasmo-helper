@@ -92,7 +92,7 @@ export default function AboutPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">📱</span>
-                  <span>Modo sobreposição para jogar em tela cheia</span>
+                  <span>Modo sobreposição para jogar em tela cheia (soon)</span>
                 </li>
               </ul>
             </ScrollArea>
