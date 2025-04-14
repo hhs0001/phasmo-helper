@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
+use tauri_plugin_sql::{Migration, MigrationKind};
 use window_vibrancy::apply_acrylic;
 
 #[derive(Debug, Clone)]
@@ -323,7 +324,29 @@ fn handle_shortcut_action(shortcut_name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Definindo as migrações para o banco de dados
+    let migrations = vec![Migration {
+        version: 1,
+        description: "create_game_sessions_table",
+        sql: "CREATE TABLE IF NOT EXISTS game_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT,
+                guessed_ghost_id TEXT,
+                actual_ghost_id TEXT,
+                was_correct INTEGER,
+                died INTEGER NOT NULL,
+                map_name TEXT
+            );",
+        kind: MigrationKind::Up,
+    }];
+
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:phasmo_games.db", migrations)
+                .build(),
+        )
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())

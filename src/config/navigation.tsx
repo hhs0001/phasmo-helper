@@ -1,5 +1,6 @@
 import AboutPage from "@/pages/about";
 import ConfigPage from "@/pages/config";
+import GamesPage from "@/pages/games";
 import GhostsPage from "@/pages/ghosts";
 import {
   IconGhost,
@@ -19,7 +20,7 @@ export const pagesConfig = {
     title: "Jogos",
     url: "/games",
     icon: IconDeviceGamepad,
-    component: () => <div className="p-4">Página de Jogos</div>,
+    component: () => <GamesPage />,
   },
   Settings: {
     title: "Configurações",
