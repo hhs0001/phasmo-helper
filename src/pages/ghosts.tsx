@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { useGhostData } from "@/hooks/use-ghost";
 import { useAppConfig } from "@/hooks/use-config";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useGame } from "@/hooks/use-game";
 import {
   Select,
   SelectContent,
@@ -21,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import ShowInfo from "@/components/show-info";
 import GameTimers from "@/components/game-timers";
 import { toast } from "sonner";
@@ -31,9 +25,13 @@ import {
   CheckIcon,
   Cross2Icon,
   DashIcon,
+  PlayIcon,
+  StopIcon,
 } from "@radix-ui/react-icons";
 import { Evidence, GameMode, Ghost, GhostSpeed } from "@/types/ghost-schema";
 import { useGhostStore } from "@/stores/ghost-store";
+import { SkullIcon } from "lucide-react";
+import GhostCard from "@/components/ghost-card";
 
 export default function GhostsPage() {
   const {
@@ -66,6 +64,21 @@ export default function GhostsPage() {
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("evidences");
+
+  // Adicionando o hook useGame
+  const {
+    isGameActive,
+    startGame,
+    endGame,
+    resetGame,
+    guessGhost,
+    confirmActualGhost,
+    setPlayerDied,
+    isGhostGuessed,
+    isGhostConfirmed,
+    gameStats,
+    isPlayerDead,
+  } = useGame();
 
   // Função para abrir o modal com detalhes do fantasma
   const handleGhostClick = (ghost: Ghost) => {
@@ -191,6 +204,93 @@ export default function GhostsPage() {
   return (
     <main className="p-4 container mx-auto">
       <h1 className="text-3xl font-bold mb-6">Fantasmas</h1>
+
+      {/* Controles para jogo atual */}
+      <div className="mb-6 p-4 bg-card rounded-md border">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Investigação Atual</h2>
+            <div className="flex items-center gap-2">
+              {isGameActive ? (
+                <>
+                  <Badge
+                    variant="outline"
+                    className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                  >
+                    Investigação em andamento
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={endGame}
+                    className="flex items-center gap-1"
+                  >
+                    <StopIcon className="h-3.5 w-3.5" />
+                    Encerrar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetGame}
+                    className="flex items-center gap-1"
+                  >
+                    <ResetIcon className="h-3.5 w-3.5" />
+                    Reiniciar
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={startGame}
+                  className="flex items-center gap-1"
+                >
+                  <PlayIcon className="h-3.5 w-3.5" />
+                  Iniciar Nova Investigação
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {isGameActive && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm">Você morreu?</span>
+              <div className="flex gap-1">
+                <Button
+                  variant={isPlayerDead() ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPlayerDied(true)}
+                  className="flex items-center gap-1"
+                >
+                  <SkullIcon className="h-3.5 w-3.5" />
+                  Sim
+                </Button>
+                <Button
+                  variant={isPlayerDead() === false ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPlayerDied(false)}
+                  className="flex items-center gap-1"
+                >
+                  <CheckIcon className="h-3.5 w-3.5" />
+                  Não
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <h3 className="text-sm font-medium">Estatísticas:</h3>
+            <div className="text-xs text-muted-foreground">
+              <div className="flex gap-2">
+                <span>Jogos: {gameStats.totalGames}</span>
+                <span>Acertos: {gameStats.correctGuesses}</span>
+                <span>Mortes: {gameStats.deaths}</span>
+              </div>
+              <div>Taxa de acerto: {gameStats.winRate.toFixed(1)}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Cabeçalho com modo de jogo e botões */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -460,54 +560,22 @@ export default function GhostsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {possibleGhosts.length > 0 ? (
           possibleGhosts.map((ghost) => (
-            <Card
+            <GhostCard
               key={ghost.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleGhostClick(ghost)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle>{ghost.name}</CardTitle>
-                  <div className="text-sm text-muted-foreground">
-                    <Badge variant="outline">
-                      {formatSpeedDescription(ghost)}
-                    </Badge>
-                  </div>
-                </div>
-                <CardDescription className="line-clamp-2">
-                  {ghost.description.substring(0, 100)}...
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {ghost.evidences.map((evidence) => (
-                    <Badge
-                      key={evidence}
-                      variant={
-                        isGuaranteedEvidence(ghost, evidence)
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {evidenceTranslation[evidence]}
-                      {isGuaranteedEvidence(ghost, evidence) && " (G)"}
-                    </Badge>
-                  ))}
-                </div>
-
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>Caça: {formatSanityThreshold(ghost)}</span>
-                  {ghost.hasLOS && <span>Tem LoS</span>}
-                </div>
-
-                {(gameMode === "Nightmare" || gameMode === "Insanity") && (
-                  <div className="text-xs text-muted-foreground mt-2">
-                    <p>Combinações possíveis:</p>
-                    <p>{getEvidenceCombinationsDisplay(ghost)}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              ghost={ghost}
+              gameMode={gameMode}
+              isGameActive={isGameActive}
+              isGuessed={isGhostGuessed(ghost.id)}
+              isConfirmed={isGhostConfirmed(ghost.id)}
+              evidenceTranslation={evidenceTranslation}
+              formatSpeedDescription={formatSpeedDescription}
+              formatSanityThreshold={formatSanityThreshold}
+              isGuaranteedEvidence={isGuaranteedEvidence}
+              getEvidenceCombinationsDisplay={getEvidenceCombinationsDisplay}
+              onGhostClick={handleGhostClick}
+              onGuessGhost={guessGhost}
+              onConfirmGhost={confirmActualGhost}
+            />
           ))
         ) : (
           <div className="col-span-full text-center p-8">
