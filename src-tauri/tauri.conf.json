@@ -28,7 +28,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY0RUFDNjA5MzExODY0NjIKUldSaVpCZ3hDY2JxWkJQN1g5ZnlDREg3enU3c2tIVUk4cHppNWtybnVkRE9CRnJLazVEWHdydjIK",
       "endpoints": [
-        "https://releases.myapp.com/{{target}}/{{arch}}/{{current_version}}"
+        "https://github.com/hhs0001/phasmo-helper/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
