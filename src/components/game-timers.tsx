@@ -255,7 +255,7 @@ export default function GameTimers({
 
   // Classe CSS para o card principal
   const cardClasses = isMinimized
-    ? "fixed bottom-4 right-4 w-auto h-auto shadow-lg transition-all duration-300 z-50 cursor-pointer"
+    ? "fixed bottom-4 right-4 w-auto h-auto shadow-lg transition-all duration-300 z-50 cursor-pointer p-1"
     : "fixed bottom-4 right-4 w-80 shadow-lg transition-all duration-300 z-50";
 
   return (
