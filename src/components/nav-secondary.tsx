@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import UpdaterComponent from "./updater";
 export function NavSecondary({
   items,
   onNavItemClick,
@@ -26,6 +27,7 @@ export function NavSecondary({
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
+          <UpdaterComponent />
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton

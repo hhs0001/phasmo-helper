@@ -80,6 +80,11 @@ export default function GhostsPage() {
     isPlayerDead,
   } = useGame();
 
+  // Estado para o tamanho do mapa
+  const [mapSize, setMapSize] = useState<"small" | "medium" | "large">(
+    "medium"
+  );
+
   // Função para abrir o modal com detalhes do fantasma
   const handleGhostClick = (ghost: Ghost) => {
     setSelectedGhostId(ghost.id);
@@ -306,6 +311,21 @@ export default function GhostsPage() {
               <SelectItem value="Professional">Profissional</SelectItem>
               <SelectItem value="Nightmare">Pesadelo</SelectItem>
               <SelectItem value="Insanity">Insanidade</SelectItem>
+            </SelectContent>
+          </Select>
+          {/* Seletor de tamanho de mapa */}
+          <h2 className="text-xl font-semibold ml-6">Tamanho do Mapa:</h2>
+          <Select
+            value={mapSize}
+            onValueChange={(v) => setMapSize(v as "small" | "medium" | "large")}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Tamanho do mapa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Pequeno</SelectItem>
+              <SelectItem value="medium">Médio</SelectItem>
+              <SelectItem value="large">Grande</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -599,7 +619,7 @@ export default function GhostsPage() {
         difficulty={
           gameMode.toLowerCase() as "amateur" | "intermediate" | "professional"
         }
-        mapSize="medium"
+        mapSize={mapSize}
       />
 
       {/* Componente ShowInfo para detalhes do fantasma */}

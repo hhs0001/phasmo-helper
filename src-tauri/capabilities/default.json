@@ -16,6 +16,7 @@
     "http:default",
     "sql:default",
     "sql:allow-execute",
+    "updater:default",
     {
       "identifier": "http:default",
       "allow": [
