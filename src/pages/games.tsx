@@ -320,7 +320,7 @@ export default function GamesPage() {
                               <TrashIcon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="bg-primary-foreground">
                             <DialogHeader>
                               <DialogTitle>
                                 Excluir registro de jogo
