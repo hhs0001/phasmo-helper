@@ -27,6 +27,7 @@ import {
   getTimerRemainingSeconds,
 } from "@/stores/timer-store";
 import { TimerSoundPlayer } from "@/components/timer-sound-player";
+import { animate } from "animejs";
 
 interface GameTimersProps {
   difficulty?:
@@ -89,6 +90,9 @@ export default function GameTimers({
 
   // Referência ao contêiner de áudio
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Ref para animar o Card
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   // Obter estados e ações da store de timers
   const {
@@ -153,6 +157,26 @@ export default function GameTimers({
     }, 100);
     return () => clearInterval(interval);
   }, [timers, playTimerCompleteSound]);
+
+  // Animação de abrir/fechar popup
+  useEffect(() => {
+    if (!cardRef.current) return;
+    if (settings.minimized) {
+      animate(cardRef.current, {
+        opacity: [1, 0],
+        scale: [1, 0.95],
+        duration: 250,
+        ease: "in(3)",
+      });
+    } else {
+      animate(cardRef.current, {
+        opacity: [0, 1],
+        scale: [0.95, 1],
+        duration: 350,
+        ease: "out(3)",
+      });
+    }
+  }, [settings.minimized]);
 
   // Manipular o início de um timer
   const handleStartTimer = (type: TimerType) => {
@@ -332,6 +356,7 @@ export default function GameTimers({
       />
 
       <Card
+        ref={cardRef}
         className={
           settings.minimized
             ? "fixed bottom-4 right-4 w-auto h-auto shadow-lg transition-all duration-300 z-50 cursor-pointer p-1"
