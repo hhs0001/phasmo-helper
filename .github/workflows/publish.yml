@@ -57,6 +57,7 @@ jobs:
             - Permissões do app revisadas para maior segurança: acesso a arquivos restrito à pasta da aplicação.
             - Melhorias na configuração de sons customizados: arquivos são copiados para o diretório seguro do app.
             - Correções de bugs e melhorias gerais de performance.
+            - Adicionada animação ao componente de timers
             
             Veja os assets abaixo para baixar e instalar esta versão.
           releaseDraft: true
