@@ -17,6 +17,30 @@
     "sql:default",
     "sql:allow-execute",
     "updater:default",
+    "dialog:default",
+    "fs:default",
+    "fs:write-all",
+    "fs:scope-app",
+    "fs:allow-copy-file",
+    "fs:read-all",
+    "fs:allow-write",
+    "fs:allow-create",
+    {
+      "identifier": "fs:scope-app",
+      "allow": ["**/*"]
+    },
+    {
+      "identifier": "fs:read-all",
+      "allow": ["$APP/*"]
+    },
+    {
+      "identifier": "fs:write-all",
+      "allow": ["$APP/*"]
+    },
+    {
+      "identifier": "fs:allow-copy-file",
+      "allow": ["**/*"]
+    },
     {
       "identifier": "http:default",
       "allow": [

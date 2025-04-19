@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getConfig, setConfig } from "@/lib/storeLoader";
+import { useTimerStore } from "@/stores/timer-store";
 
 // Definição dos tipos para as configurações
 export type KeybindConfig = {
@@ -19,6 +20,11 @@ export type AppConfig = {
   application: {
     showInfo: "modal" | "panel";
     theme: "light" | "dark" | "system";
+  };
+  timers: {
+    huntSound: string | null;
+    smudgeSound: string | null;
+    cooldownSound: string | null;
   };
 };
 
@@ -84,6 +90,11 @@ export const DEFAULT_CONFIG: AppConfig = {
     showInfo: "modal",
     theme: "system",
   },
+  timers: {
+    huntSound: null,
+    smudgeSound: null,
+    cooldownSound: null,
+  },
 };
 
 interface ConfigState {
@@ -97,6 +108,7 @@ interface ConfigState {
   ) => Promise<void>;
   updateKeybind: (id: string, keybind: Partial<KeybindConfig>) => Promise<void>;
   updateOverlay: (overlay: Partial<AppConfig["overlay"]>) => Promise<void>;
+  updateTimers: (timers: Partial<AppConfig["timers"]>) => Promise<void>;
   resetConfig: () => Promise<void>;
 }
 
@@ -163,6 +175,21 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       await setConfig("appConfig", newConfig);
     } catch (error) {
       console.error("Erro ao atualizar overlay:", error);
+      throw error;
+    }
+  },
+
+  updateTimers: async (timers: Partial<AppConfig["timers"]>) => {
+    try {
+      const { config } = get();
+      const newTimers = { ...config.timers, ...timers };
+      const newConfig = { ...config, timers: newTimers };
+      set({ config: newConfig });
+      await setConfig("appConfig", newConfig);
+      // Sincronizar sons customizados na store de timers
+      useTimerStore.getState().syncWithAppConfig();
+    } catch (error) {
+      console.error("Erro ao atualizar timers:", error);
       throw error;
     }
   },

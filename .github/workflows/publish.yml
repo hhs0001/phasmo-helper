@@ -50,7 +50,15 @@ jobs:
         with:
           tagName: app-v__VERSION__
           releaseName: 'App v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: |
+            ## Novidades desta atualização
+            - Refatoração completa do temporizador: timers agora mais estáveis, sem loops de renderização.
+            - Sons customizados para timers funcionando sem delay e sem erros de permissão.
+            - Permissões do app revisadas para maior segurança: acesso a arquivos restrito à pasta da aplicação.
+            - Melhorias na configuração de sons customizados: arquivos são copiados para o diretório seguro do app.
+            - Correções de bugs e melhorias gerais de performance.
+            
+            Veja os assets abaixo para baixar e instalar esta versão.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
