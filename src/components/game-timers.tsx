@@ -12,219 +12,288 @@ import {
   ResetIcon,
   PauseIcon,
   PlayIcon,
-  Cross2Icon,
+  SpeakerLoudIcon,
+  SpeakerOffIcon,
+  MinusIcon,
 } from "@radix-ui/react-icons";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { eventBus } from "@/lib/events";
-
-// Simplificando para apenas três tipos de timer
-type TimerType = "hunt" | "smudge" | "cooldown";
-
-type TimerDurations = {
-  hunt: {
-    amateur: { small: 15; medium: 30; large: 40; cursed: 20 };
-    intermediate: { small: 20; medium: 40; large: 50; cursed: 20 };
-    professional: { small: 30; medium: 50; large: 60; cursed: 20 };
-  };
-  smudge: {
-    normal: 90;
-    spirit: 180;
-    demon: 60;
-  };
-  cooldown: {
-    normal: 25;
-    demon: 20;
-  };
-};
-
-const TIMER_DURATIONS: TimerDurations = {
-  hunt: {
-    amateur: { small: 15, medium: 30, large: 40, cursed: 20 },
-    intermediate: { small: 20, medium: 40, large: 50, cursed: 20 },
-    professional: { small: 30, medium: 50, large: 60, cursed: 20 },
-  },
-  smudge: {
-    normal: 90,
-    spirit: 180,
-    demon: 60,
-  },
-  cooldown: {
-    normal: 25,
-    demon: 20,
-  },
-};
+import {
+  useTimerStore,
+  TimerType,
+  TIMER_DURATIONS,
+  getTimerRemainingSeconds,
+} from "@/stores/timer-store";
+import { TimerSoundPlayer } from "@/components/timer-sound-player";
+import { animate } from "animejs";
 
 interface GameTimersProps {
-  difficulty: "amateur" | "intermediate" | "professional";
-  mapSize: "small" | "medium" | "large" | "cursed";
+  difficulty?:
+    | "amateur"
+    | "intermediate"
+    | "professional"
+    | "nightmare"
+    | "insanity";
+  mapSize?: "small" | "medium" | "large" | "cursed";
 }
+
+// Função para formatar o tempo em mm:ss
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs
+    .toString()
+    .padStart(2, "0")}`;
+};
+
+// Função para obter o nome amigável do timer
+const getTimerName = (type: TimerType): string => {
+  switch (type) {
+    case "hunt":
+      return "Caçada";
+    case "smudge":
+      return "Incenso";
+    case "cooldown":
+      return "Cooldown";
+    default:
+      return "Timer";
+  }
+};
+
+// Mapeamento de dificuldades para os valores suportados pelo TIMER_DURATIONS
+const difficultyMapping = {
+  amateur: "amateur",
+  intermediate: "intermediate",
+  professional: "professional",
+  nightmare: "professional", // usar professional para nightmare
+  insanity: "professional", // usar professional para insanity
+} as const;
 
 export default function GameTimers({
   difficulty = "amateur",
   mapSize = "small",
 }: GameTimersProps) {
-  // Estados para cada timer
-  const [activeTimer, setActiveTimer] = useState<TimerType | null>(null);
-  const [timerValue, setTimerValue] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  // Estados locais
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(
+    null
+  );
+  const [showSoundSettings, setShowSoundSettings] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<Record<TimerType, number>>({
+    hunt: 0,
+    smudge: 0,
+    cooldown: 0,
+  });
+  // Controle para prevenir notificações duplicadas de término
+  const completedTimersRef = useRef<Set<string>>(new Set());
 
-  // Referências para controle do timer
-  const timerInterval = useRef<NodeJS.Timeout | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const longPressDuration = 800; // ms necessários para considerar um "pressionar longo"
+  // Referência ao contêiner de áudio
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Função para iniciar, pausar ou retomar um timer
-  const toggleTimer = (type: TimerType) => {
-    // Se tiver um timer ativo e for o mesmo tipo
-    if (activeTimer === type) {
-      // Toggle pause/resume
-      setIsPaused(!isPaused);
+  // Ref para animar o Card
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // Obter estados e ações da store de timers
+  const {
+    timers,
+    settings,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    resetTimer,
+    updateSettings,
+    playTimerCompleteSound,
+    syncWithAppConfig,
+  } = useTimerStore();
+
+  // Sincronizar sons personalizados ao montar o componente
+  useEffect(() => {
+    syncWithAppConfig();
+  }, [syncWithAppConfig]);
+
+  // Mapear a dificuldade para um valor compatível com TIMER_DURATIONS
+  const mappedDifficulty = difficultyMapping[difficulty] || "amateur";
+
+  const hasActiveTimers = Object.values(timers).some((timer) => timer !== null);
+
+  // Limpar o set de timers completados quando não existirem timers ativos
+  useEffect(() => {
+    if (!hasActiveTimers) {
+      completedTimersRef.current.clear();
+    }
+  }, [hasActiveTimers]);
+
+  // Atualiza timeLeft e notifica conclusão de timers em loop contínuo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTimeLeft: Record<TimerType, number> = {
+          hunt: getTimerRemainingSeconds(timers.hunt),
+          smudge: getTimerRemainingSeconds(timers.smudge),
+          cooldown: getTimerRemainingSeconds(timers.cooldown),
+        };
+        // Notifica timers que passaram a zero
+        Object.entries(newTimeLeft).forEach(([type, seconds]) => {
+          const timerType = type as TimerType;
+          const prevSeconds = prev[timerType];
+          const timer = timers[timerType];
+          if (
+            prevSeconds > 0 &&
+            seconds === 0 &&
+            timer &&
+            !completedTimersRef.current.has(timer.id)
+          ) {
+            completedTimersRef.current.add(timer.id);
+            playTimerCompleteSound(timerType);
+            eventBus.emit(`timer:completed-${timerType}` as any, {
+              timerId: timer.id,
+            });
+            toast.info(`Timer de ${getTimerName(timerType)} concluído!`);
+          }
+        });
+        return newTimeLeft;
+      });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [timers, playTimerCompleteSound]);
+
+  // Animação de abrir/fechar popup
+  useEffect(() => {
+    if (!cardRef.current) return;
+    if (settings.minimized) {
+      animate(cardRef.current, {
+        opacity: [1, 0],
+        scale: [1, 0.95],
+        duration: 250,
+        ease: "in(3)",
+      });
+    } else {
+      animate(cardRef.current, {
+        opacity: [0, 1],
+        scale: [0.95, 1],
+        duration: 350,
+        ease: "out(3)",
+      });
+    }
+  }, [settings.minimized]);
+
+  // Manipular o início de um timer
+  const handleStartTimer = (type: TimerType) => {
+    const existingTimer = timers[type];
+
+    // Se o timer já estiver ativo, alterne entre pausar e retomar
+    if (existingTimer) {
+      if (existingTimer.isPaused) {
+        resumeTimer(type);
+        toast.info(`Timer de ${getTimerName(type)} retomado`);
+      } else {
+        pauseTimer(type);
+        toast.info(`Timer de ${getTimerName(type)} pausado`);
+      }
       return;
     }
 
-    // Se for um novo timer ou um tipo diferente
-    clearInterval(timerInterval.current!);
-
-    // Configurar o novo timer
-    setActiveTimer(type);
-    setIsPaused(false);
-
-    // Definir o valor inicial com base no tipo, dificuldade e tamanho do mapa
+    // Definir a duração inicial com base no tipo, dificuldade e tamanho do mapa
     let initialValue = 0;
 
     if (type === "hunt") {
-      initialValue = TIMER_DURATIONS.hunt[difficulty][mapSize];
+      initialValue = TIMER_DURATIONS.hunt[mappedDifficulty][mapSize];
     } else if (type === "smudge") {
-      initialValue = TIMER_DURATIONS.smudge.normal; // Valor padrão
+      initialValue = TIMER_DURATIONS.smudge.normal;
     } else if (type === "cooldown") {
-      initialValue = TIMER_DURATIONS.cooldown.normal; // Valor padrão
+      initialValue = TIMER_DURATIONS.cooldown.normal;
     }
 
-    setTimerValue(initialValue);
-
-    // Iniciar a contagem regressiva
-    startCountdown();
-
-    // Notificação
+    // Iniciar o timer
+    startTimer(type, initialValue);
     toast.info(
       `Timer de ${getTimerName(type)} iniciado: ${formatTime(initialValue)}`
     );
   };
 
-  // Inicia a contagem regressiva
-  const startCountdown = () => {
-    if (timerInterval.current) clearInterval(timerInterval.current);
+  // Manipular mudança de tipo para timer de smudge
+  const handleSmudgeTypeChange = (type: "normal" | "spirit" | "demon") => {
+    if (!timers.smudge) return;
 
-    timerInterval.current = setInterval(() => {
-      setTimerValue((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerInterval.current!);
-          toast.success(`Timer de ${getTimerName(activeTimer!)} concluído!`);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+    const newDuration = TIMER_DURATIONS.smudge[type];
 
-  // Função para formatar o tempo em mm:ss
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
+    // Reset e reiniciar o timer com a nova duração
+    resetTimer("smudge");
+    startTimer("smudge", newDuration);
 
-  // Função para obter o nome amigável do timer
-  const getTimerName = (type: TimerType): string => {
-    switch (type) {
-      case "hunt":
-        return "Caçada";
-      case "smudge":
-        return "Incenso";
-      case "cooldown":
-        return "Cooldown (Após Caçada)";
-      default:
-        return "Timer";
-    }
-  };
-
-  // Função para mudar o tipo de espírito do timer de incenso
-  const changeSmudgeType = (type: "normal" | "spirit" | "demon") => {
-    if (activeTimer !== "smudge") return;
-
-    const newValue = TIMER_DURATIONS.smudge[type];
-    setTimerValue(newValue);
     toast.info(
       `Timer de Incenso ajustado para ${
         type === "normal" ? "Normal" : type === "spirit" ? "Spirit" : "Demon"
-      }: ${formatTime(newValue)}`
+      }: ${formatTime(newDuration)}`
     );
   };
 
-  // Função para mudar o tipo de fantasma do timer de cooldown
-  const changeCooldownType = (type: "normal" | "demon") => {
-    if (activeTimer !== "cooldown") return;
+  // Manipular mudança de tipo para timer de cooldown
+  const handleCooldownTypeChange = (type: "normal" | "demon") => {
+    if (!timers.cooldown) return;
 
-    const newValue = TIMER_DURATIONS.cooldown[type];
-    setTimerValue(newValue);
+    const newDuration = TIMER_DURATIONS.cooldown[type];
+
+    // Reset e reiniciar o timer com a nova duração
+    resetTimer("cooldown");
+    startTimer("cooldown", newDuration);
+
     toast.info(
       `Timer de Cooldown ajustado para ${
         type === "normal" ? "Normal" : "Demon"
-      }: ${formatTime(newValue)}`
+      }: ${formatTime(newDuration)}`
     );
   };
 
   // Manipuladores para pressionar e soltar botões (para reset com pressionamento longo)
   const handleButtonDown = (type: TimerType) => {
-    longPressTimer.current = setTimeout(() => {
-      // Reset do timer se já estiver ativo
-      if (activeTimer === type) {
-        clearInterval(timerInterval.current!);
-        setActiveTimer(null);
-        setTimerValue(0);
-        toast.info(`Timer de ${getTimerName(type)} resetado`);
-      }
-    }, longPressDuration);
+    if (timers[type] === null) return;
+
+    const timer = setTimeout(() => {
+      resetTimer(type);
+      toast.info(`Timer de ${getTimerName(type)} resetado`);
+      setLongPressTimer(null);
+    }, 800);
+
+    setLongPressTimer(timer);
   };
 
   const handleButtonUp = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
     }
   };
 
-  // Limpar intervalos ao desmontar o componente
-  useEffect(() => {
-    return () => {
-      if (timerInterval.current) clearInterval(timerInterval.current);
-      if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    };
-  }, []);
+  // Alternar minimização do painel de timers
+  const toggleMinimize = () => {
+    updateSettings({ minimized: !settings.minimized });
+  };
 
-  // Pausar/retomar quando o estado de pausa mudar
-  useEffect(() => {
-    if (activeTimer === null) return;
+  // Alternar a reprodução de som
+  const toggleSound = () => {
+    updateSettings({ soundEnabled: !settings.soundEnabled });
+  };
 
-    if (isPaused) {
-      clearInterval(timerInterval.current!);
-    } else {
-      startCountdown();
+  // Atualizar o volume do som
+  const handleVolumeChange = (value: number[]) => {
+    updateSettings({ soundVolume: value[0] });
+
+    // Tocar um som de teste quando ajustar o volume
+    if (audioRef.current && settings.soundEnabled) {
+      audioRef.current.volume = value[0];
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
     }
-  }, [isPaused]);
+  };
 
   // Escutar eventos de atalhos de teclado
   useEffect(() => {
     // Função para lidar com eventos de timer vindo dos atalhos
-    const handleHuntTimer = () => toggleTimer("hunt");
-    const handleSmudgeTimer = () => toggleTimer("smudge");
-    const handleCooldownTimer = () => toggleTimer("cooldown");
-
-    // Ambos os atalhos acionam o mesmo timer de caçada
-    const handleHuntTrackTimer = () => toggleTimer("hunt");
+    const handleHuntTimer = () => handleStartTimer("hunt");
+    const handleSmudgeTimer = () => handleStartTimer("smudge");
+    const handleCooldownTimer = () => handleStartTimer("cooldown");
 
     // Registrar listeners para os eventos
     const unsubscribeHunt = eventBus.subscribe(
@@ -241,7 +310,7 @@ export default function GameTimers({
     );
     const unsubscribeHuntTrack = eventBus.subscribe(
       "timer:start-hunt-track",
-      handleHuntTrackTimer
+      handleHuntTimer
     );
 
     // Limpar listeners quando o componente for desmontado
@@ -250,179 +319,320 @@ export default function GameTimers({
       unsubscribeSmudge();
       unsubscribeCooldown();
       unsubscribeHuntTrack();
-    };
-  }, [difficulty, mapSize]); // Dependências para garantir que os valores corretos sejam usados
 
-  // Classe CSS para o card principal
-  const cardClasses = isMinimized
-    ? "fixed bottom-4 right-4 w-auto h-auto shadow-lg transition-all duration-300 z-50 cursor-pointer p-1"
-    : "fixed bottom-4 right-4 w-80 shadow-lg transition-all duration-300 z-50";
+      // Limpar qualquer timeout pendente
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [mappedDifficulty, mapSize]);
+
+  // Limpar intervalos ao desmontar o componente
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, []);
+
+  // Calculando a duração para exibição no botão de caçada
+  const huntDuration =
+    mappedDifficulty && mapSize
+      ? TIMER_DURATIONS.hunt[mappedDifficulty][mapSize]
+      : 0;
 
   return (
-    <Card className={cardClasses}>
-      {isMinimized ? (
-        <div
-          className="p-2 flex items-center justify-center cursor-pointer"
-          onClick={() => setIsMinimized(false)}
-        >
-          <Badge variant="default">
-            {activeTimer
-              ? `${getTimerName(activeTimer)}: ${formatTime(timerValue)}`
-              : "Timers"}
-          </Badge>
-        </div>
-      ) : (
-        <>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Phasmo Timers</CardTitle>
-              <CardDescription>Controle de tempos do jogo</CardDescription>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setIsMinimized(true)}
-              >
-                <Cross2Icon className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0 pb-4">
-            <div className="space-y-4">
-              {/* Timer ativo */}
-              {activeTimer && (
-                <div className="p-3 bg-muted rounded-md flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium">
-                      {getTimerName(activeTimer)}
-                    </div>
-                    <div className="text-2xl font-bold">
-                      {formatTime(timerValue)}
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setIsPaused(!isPaused)}
+    <>
+      {/* Componente invisível que gerencia sons personalizados dos timers */}
+      <TimerSoundPlayer />
+
+      {/* Elemento de áudio oculto para testes de som (usado pelo ajuste de volume) */}
+      <audio
+        ref={audioRef}
+        src={`/assets/sounds/${settings.defaultSoundFile}`}
+        preload="auto"
+        style={{ display: "none" }}
+      />
+
+      <Card
+        ref={cardRef}
+        className={
+          settings.minimized
+            ? "fixed bottom-4 right-4 w-auto h-auto shadow-lg transition-all duration-300 z-50 cursor-pointer p-1"
+            : hasActiveTimers
+            ? "fixed bottom-4 right-4 w-72 shadow-lg transition-all duration-300 z-50"
+            : "fixed bottom-4 right-4 w-64 shadow-lg transition-all duration-300 z-50"
+        }
+      >
+        {settings.minimized ? (
+          <div
+            className="p-2 flex items-center justify-center cursor-pointer"
+            onClick={toggleMinimize}
+          >
+            <div className="flex flex-col gap-1">
+              {Object.entries(timers).map(
+                ([type, timer]) =>
+                  timer && (
+                    <Badge
+                      key={type}
+                      variant={timer.isPaused ? "outline" : "default"}
+                      className="flex justify-between items-center gap-1"
                     >
-                      {isPaused ? <PlayIcon /> : <PauseIcon />}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        clearInterval(timerInterval.current!);
-                        setActiveTimer(null);
-                        setTimerValue(0);
-                      }}
-                    >
-                      <ResetIcon />
-                    </Button>
-                  </div>
-                </div>
+                      <span>{getTimerName(type as TimerType)}</span>
+                      <span>{formatTime(timeLeft[type as TimerType])}</span>
+                      {timer.isPaused && <PauseIcon className="h-3 w-3" />}
+                    </Badge>
+                  )
               )}
-
-              {/* Controles do timer de incenso */}
-              {activeTimer === "smudge" && (
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => changeSmudgeType("normal")}
-                  >
-                    Normal (90s)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => changeSmudgeType("spirit")}
-                  >
-                    Spirit (180s)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => changeSmudgeType("demon")}
-                  >
-                    Demon (60s)
-                  </Button>
-                </div>
-              )}
-
-              {/* Controles do timer de cooldown */}
-              {activeTimer === "cooldown" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changeCooldownType("normal")}
-                  >
-                    Normal (25s)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changeCooldownType("demon")}
-                  >
-                    Demon (20s)
-                  </Button>
-                </div>
-              )}
-
-              {/* Botões para iniciar timers */}
-              <div className="grid grid-cols-1 gap-2">
+              {!hasActiveTimers && <Badge variant="outline">Timers</Badge>}
+            </div>
+          </div>
+        ) : (
+          <>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between px-4 pt-2">
+              <div>
+                <CardTitle className="text-sm font-medium">
+                  Phasmo Timers
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Controle de tempos
+                </CardDescription>
+              </div>
+              <div className="flex gap-1">
                 <Button
-                  variant={activeTimer === "hunt" ? "default" : "outline"}
-                  onMouseDown={() => handleButtonDown("hunt")}
-                  onMouseUp={handleButtonUp}
-                  onMouseLeave={handleButtonUp}
-                  onClick={() => toggleTimer("hunt")}
-                  className="text-sm h-12"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={toggleSound}
+                  title={settings.soundEnabled ? "Desativar som" : "Ativar som"}
                 >
-                  Caçada
-                  <br />
-                  {difficulty && mapSize
-                    ? `(${TIMER_DURATIONS.hunt[difficulty][mapSize]}s)`
-                    : ""}
+                  {settings.soundEnabled ? (
+                    <SpeakerLoudIcon className="h-3 w-3" />
+                  ) : (
+                    <SpeakerOffIcon className="h-3 w-3" />
+                  )}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={toggleMinimize}
+                  title="Minimizar"
+                >
+                  <MinusIcon className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
 
-                <div className="grid grid-cols-2 gap-2">
+            <CardContent className="pt-0 pb-3 px-4">
+              {/* Configurações de som */}
+              {showSoundSettings && (
+                <div className="mb-3 bg-muted p-2 rounded-md">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium">
+                      Som ao finalizar
+                    </span>
+                    <Switch
+                      checked={settings.soundEnabled}
+                      onCheckedChange={(checked) =>
+                        updateSettings({ soundEnabled: checked })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground mb-1 block">
+                      Volume
+                    </span>
+                    <Slider
+                      value={[settings.soundVolume]}
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      onValueChange={handleVolumeChange}
+                      disabled={!settings.soundEnabled}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {/* Timers ativos */}
+                {Object.entries(timers).map(
+                  ([type, timer]) =>
+                    timer && (
+                      <div key={type} className="p-2 bg-muted rounded-md">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-xs font-medium">
+                              {getTimerName(type as TimerType)}
+                            </div>
+                            <div className="text-xl font-bold">
+                              {formatTime(timeLeft[type as TimerType])}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() =>
+                                timer.isPaused
+                                  ? resumeTimer(type as TimerType)
+                                  : pauseTimer(type as TimerType)
+                              }
+                            >
+                              {timer.isPaused ? (
+                                <PlayIcon className="h-3 w-3" />
+                              ) : (
+                                <PauseIcon className="h-3 w-3" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => resetTimer(type as TimerType)}
+                            >
+                              <ResetIcon className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Controles do timer de incenso */}
+                        {type === "smudge" && (
+                          <div className="grid grid-cols-3 gap-1 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-6"
+                              onClick={() => handleSmudgeTypeChange("normal")}
+                            >
+                              Normal
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-6"
+                              onClick={() => handleSmudgeTypeChange("spirit")}
+                            >
+                              Spirit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-6"
+                              onClick={() => handleSmudgeTypeChange("demon")}
+                            >
+                              Demon
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Controles do timer de cooldown */}
+                        {type === "cooldown" && (
+                          <div className="grid grid-cols-2 gap-1 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-6"
+                              onClick={() => handleCooldownTypeChange("normal")}
+                            >
+                              Normal (25s)
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-6"
+                              onClick={() => handleCooldownTypeChange("demon")}
+                            >
+                              Demon (20s)
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                )}
+
+                {/* Botões para iniciar timers */}
+                <div className="grid grid-cols-1 gap-2">
                   <Button
-                    variant={activeTimer === "smudge" ? "default" : "outline"}
-                    onMouseDown={() => handleButtonDown("smudge")}
+                    variant={
+                      timers.hunt
+                        ? timers.hunt.isPaused
+                          ? "outline"
+                          : "default"
+                        : "outline"
+                    }
+                    onMouseDown={() => handleButtonDown("hunt")}
                     onMouseUp={handleButtonUp}
                     onMouseLeave={handleButtonUp}
-                    onClick={() => toggleTimer("smudge")}
-                    className="text-xs h-12"
+                    onClick={() => handleStartTimer("hunt")}
+                    className="text-sm h-10"
                   >
-                    Incenso
+                    Caçada
                     <br />
-                    (90s)
+                    {huntDuration > 0 ? `(${huntDuration}s)` : ""}
                   </Button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant={
+                        timers.smudge
+                          ? timers.smudge.isPaused
+                            ? "outline"
+                            : "default"
+                          : "outline"
+                      }
+                      onMouseDown={() => handleButtonDown("smudge")}
+                      onMouseUp={handleButtonUp}
+                      onMouseLeave={handleButtonUp}
+                      onClick={() => handleStartTimer("smudge")}
+                      className="text-xs h-10"
+                    >
+                      Incenso
+                      <br />
+                      (90s)
+                    </Button>
+                    <Button
+                      variant={
+                        timers.cooldown
+                          ? timers.cooldown.isPaused
+                            ? "outline"
+                            : "default"
+                          : "outline"
+                      }
+                      onMouseDown={() => handleButtonDown("cooldown")}
+                      onMouseUp={handleButtonUp}
+                      onMouseLeave={handleButtonUp}
+                      onClick={() => handleStartTimer("cooldown")}
+                      className="text-xs h-10"
+                    >
+                      Cooldown
+                      <br />
+                      (25s)
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Botão para configurações de som */}
+                <div className="flex justify-center mt-2">
                   <Button
-                    variant={activeTimer === "cooldown" ? "default" : "outline"}
-                    onMouseDown={() => handleButtonDown("cooldown")}
-                    onMouseUp={handleButtonUp}
-                    onMouseLeave={handleButtonUp}
-                    onClick={() => toggleTimer("cooldown")}
-                    className="text-xs h-12"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setShowSoundSettings(!showSoundSettings)}
                   >
-                    Cooldown
-                    <br />
-                    (25s)
+                    {showSoundSettings
+                      ? "Ocultar configurações"
+                      : "Configurações de som"}
                   </Button>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </>
-      )}
-    </Card>
+            </CardContent>
+          </>
+        )}
+      </Card>
+    </>
   );
 }

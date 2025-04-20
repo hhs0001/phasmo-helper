@@ -5,6 +5,7 @@ import { AppConfigPage } from "@/components/config/theme-config";
 import { useAppConfig } from "@/hooks/use-config";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { TimerConfig } from "./timer-config";
 
 export function ConfigForm() {
   const { resetConfig } = useAppConfig();
@@ -31,6 +32,8 @@ export function ConfigForm() {
       <Separator />
 
       <AppConfigPage />
+
+      <TimerConfig />
 
       <div className="flex justify-end">
         <Button variant="destructive" onClick={handleReset}>

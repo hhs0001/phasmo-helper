@@ -13,6 +13,7 @@ export function useAppConfig() {
     updateKeybind,
     updateOverlay,
     resetConfig,
+    updateTimers,
   } = useConfigStore();
 
   // Métodos específicos para manipular keybinds
@@ -81,5 +82,6 @@ export function useAppConfig() {
     toggleAlwaysOnTop,
     setTheme,
     setShowInfo,
+    updateTimers,
   };
 }
