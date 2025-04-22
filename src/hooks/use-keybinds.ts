@@ -9,7 +9,7 @@ import { eventBus } from "@/lib/events";
 import { Evidence } from "@/types/ghost-schema";
 
 export function useKeybinds() {
-  const currentPage = useNavigationStore((state) => state.currentPage);
+  const { currentPage, setCurrentPage } = useNavigationStore();
   const config = useConfigStore((state) => state.config);
   const { toggleEvidenceInclusion, resetFilters } = useGhost();
   const [isActive, setIsActive] = useState(currentPage !== "Config");
@@ -36,6 +36,23 @@ export function useKeybinds() {
     colldownTimer: "timer:start-cooldown",
     huntTrack: "timer:start-hunt-track",
   };
+
+  // Outras ações de keybinds
+  const otherActions: Record<string, string> = {
+    ghostSpeed: "ghostSpeed:calculate",
+  };
+
+  // Função para navegar para a página de fantasmas e selecionar a aba de velocidade
+  const navigateToGhostSpeedTab = useCallback(() => {
+    // Se não estivermos na página de fantasmas, vamos para ela
+    if (currentPage !== "Ghosts") {
+      setCurrentPage("Ghosts");
+    }
+
+    // Emitir um evento para selecionar a aba de velocidade
+    // Este evento será capturado na página de fantasmas
+    eventBus.emit("ghosts:selectSpeedTab");
+  }, [currentPage, setCurrentPage]);
 
   const disableKeybinds = useCallback(async () => {
     if (keybindsProcessingRef.current) return;
@@ -184,6 +201,24 @@ export function useKeybinds() {
             return;
           }
 
+          // Verificar se é a ação de calcular velocidade do fantasma
+          if (action === "ghostSpeed") {
+            // Navegar para a página de fantasmas e selecionar a aba de velocidade
+            navigateToGhostSpeedTab();
+            // Depois emitir o evento para calcular a velocidade
+            console.log(`Emitindo evento: ${otherActions[action]}`);
+            eventBus.emit(otherActions[action] as any);
+            return;
+          }
+
+          // Verificar se é outra ação específica
+          const otherEvent = otherActions[action];
+          if (otherEvent) {
+            console.log(`Emitindo evento: ${otherEvent}`);
+            eventBus.emit(otherEvent as any);
+            return;
+          }
+
           // Se chegou aqui, a ação não é reconhecida
           console.warn(
             `Ação de keybind desconhecida recebida do backend: ${action}`
@@ -210,7 +245,7 @@ export function useKeybinds() {
         listenerAttached.current = false;
       }
     };
-  }, [resetFilters, toggleEvidenceInclusion]);
+  }, [resetFilters, toggleEvidenceInclusion, navigateToGhostSpeedTab]);
 
   // Um único useEffect para gerenciar o estado ativo/inativo e atualizar os atalhos
   useEffect(() => {

@@ -3,7 +3,9 @@ type EventName =
   | "timer:start-hunt"
   | "timer:start-smudge"
   | "timer:start-cooldown"
-  | "timer:start-hunt-track";
+  | "timer:start-hunt-track"
+  | "ghostSpeed:calculate"
+  | "ghosts:selectSpeedTab";
 type EventCallback = (data?: any) => void;
 
 class EventBus {
