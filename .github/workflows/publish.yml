@@ -52,13 +52,9 @@ jobs:
           releaseName: 'App v__VERSION__'
           releaseBody: |
             ## Novidades desta atualização
-            - Refatoração completa do temporizador: timers agora mais estáveis, sem loops de renderização.
-            - Sons customizados para timers funcionando sem delay e sem erros de permissão.
-            - Permissões do app revisadas para maior segurança: acesso a arquivos restrito à pasta da aplicação.
-            - Melhorias na configuração de sons customizados: arquivos são copiados para o diretório seguro do app.
-            - Correções de bugs e melhorias gerais de performance.
-            - Adicionada animação ao componente de timers
-            
+              - Cálculo da velocidade do fantasma usando metrônomo: agora é possível calcular a velocidade do fantasma utilizando um metrônomo integrado
+              - Navegação automática para a aba de velocidade: agora quando a tecla de atalho é pressionada em qualquer página do app, o sistema navega automaticamente para a aba de "Velocidade e LoS" e inicia a gravação da velocidade do fantasma.
+                
             Veja os assets abaixo para baixar e instalar esta versão.
           releaseDraft: true
           prerelease: false

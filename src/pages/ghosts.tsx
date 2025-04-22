@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGhostData } from "@/hooks/use-ghost";
 import { useAppConfig } from "@/hooks/use-config";
 import { useGame } from "@/hooks/use-game";
+import { eventBus } from "@/lib/events"; // Adicionando importação do eventBus
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ShowInfo from "@/components/show-info";
 import GameTimers from "@/components/game-timers";
+import GhostSpeedCalculator from "@/components/ghost-speed-calculator";
 import { toast } from "sonner";
 import {
   InfoCircledIcon,
@@ -84,6 +86,24 @@ export default function GhostsPage() {
   const [mapSize, setMapSize] = useState<"small" | "medium" | "large">(
     "medium"
   );
+
+  // Escutar o evento para selecionar a aba de velocidade
+  useEffect(() => {
+    const handleSelectSpeedTab = () => {
+      setActiveTab("speed");
+    };
+
+    // Registrar o listener de evento
+    const unsubscribe = eventBus.subscribe(
+      "ghosts:selectSpeedTab",
+      handleSelectSpeedTab
+    );
+
+    // Limpar o listener quando o componente for desmontado
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Função para abrir o modal com detalhes do fantasma
   const handleGhostClick = (ghost: Ghost) => {
@@ -434,46 +454,94 @@ export default function GhostsPage() {
 
         {/* Tab de velocidade */}
         <TabsContent value="speed" className="p-4 bg-card rounded-md border">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">
-              Categoria de Velocidade
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {Object.keys(speedTranslations).map((speed) => (
-                <div key={speed} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`speed-${speed}`}
-                    checked={filterOptions.speed[speed as GhostSpeed]}
-                    onCheckedChange={() =>
-                      toggleSpeedFilter(speed as GhostSpeed)
-                    }
-                  />
-                  <Label htmlFor={`speed-${speed}`} className="cursor-pointer">
-                    {speedTranslations[speed as GhostSpeed]}
-                  </Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">
+                  Categoria de Velocidade
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {Object.keys(speedTranslations).map((speed) => (
+                    <div key={speed} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`speed-${speed}`}
+                        checked={filterOptions.speed[speed as GhostSpeed]}
+                        onCheckedChange={() =>
+                          toggleSpeedFilter(speed as GhostSpeed)
+                        }
+                      />
+                      <Label
+                        htmlFor={`speed-${speed}`}
+                        className="cursor-pointer"
+                      >
+                        {speedTranslations[speed as GhostSpeed]}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Selecione as categorias de velocidade a incluir.
-            </p>
-          </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Selecione as categorias de velocidade a incluir.
+                </p>
+              </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Line of Sight (LoS)</h3>
-            <div className="flex items-center justify-between">
-              <p className="text-muted-foreground">
-                Estado atual:{" "}
-                <Badge variant="outline">{getLOSFilterState()}</Badge>
-              </p>
-              <Button variant="outline" onClick={toggleLOSFilter} size="sm">
-                Alternar LoS
-              </Button>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Line of Sight (LoS)
+                </h3>
+                <div className="flex items-center justify-between">
+                  <p className="text-muted-foreground">
+                    Estado atual:{" "}
+                    <Badge variant="outline">{getLOSFilterState()}</Badge>
+                  </p>
+                  <Button variant="outline" onClick={toggleLOSFilter} size="sm">
+                    Alternar LoS
+                  </Button>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Filtra fantasmas que aceleram quando têm linha de visão direta
+                  com o jogador.
+                </p>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Filtra fantasmas que aceleram quando têm linha de visão direta com
-              o jogador.
-            </p>
+
+            {/* Integrando a calculadora de velocidade na aba com filtragem automática */}
+            <div className="border rounded-md p-4 bg-card/50">
+              <GhostSpeedCalculator
+                onDetectSpeed={(speed) => {
+                  if (speed === "unknown") return;
+
+                  // Resetar todas as categorias de velocidade primeiro
+                  Object.keys(filterOptions.speed).forEach((s) => {
+                    if (filterOptions.speed[s as GhostSpeed]) {
+                      toggleSpeedFilter(s as GhostSpeed);
+                    }
+                  });
+
+                  // Ativar apenas a categoria detectada
+                  if (!filterOptions.speed[speed]) {
+                    toggleSpeedFilter(speed);
+                  }
+
+                  // Muda para a aba de velocidade para mostrar o resultado
+                  if (activeTab !== "speed") {
+                    setActiveTab("speed");
+                  }
+                }}
+              />
+              {config.keybinds.ghostSpeed?.enabled && (
+                <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+                  <Badge variant="outline" className="mr-1">
+                    Dica
+                  </Badge>
+                  Pressione{" "}
+                  <Badge variant="secondary">
+                    {config.keybinds.ghostSpeed.key}
+                  </Badge>{" "}
+                  para atualizar o metrônomo e filtrar os fantasmas
+                  automaticamente
+                </p>
+              )}
+            </div>
           </div>
         </TabsContent>
 

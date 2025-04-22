@@ -59,6 +59,11 @@ export const DEFAULT_CONFIG: AppConfig = {
       description: "Reset Evidence",
       enabled: true,
     },
+    ghostSpeed: {
+      key: "Shift+S",
+      description: "Calcular Velocidade do Fantasma",
+      enabled: true,
+    },
     huntTrack: {
       key: "Space",
       description: "Hunt Track",
