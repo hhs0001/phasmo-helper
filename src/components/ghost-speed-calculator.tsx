@@ -9,11 +9,11 @@ import {
   TimerIcon,
 } from "@radix-ui/react-icons";
 import { eventBus } from "@/lib/events";
-import { GhostSpeed } from "@/types/ghost-schema";
+import { SpeedCategory } from "@/types/ghost-schema";
 
 type GhostSpeedCalculatorProps = {
   className?: string;
-  onDetectSpeed?: (speed: GhostSpeed | "unknown") => void;
+  onDetectSpeed?: (speedInMS: number) => void;
 };
 
 /**
@@ -32,9 +32,7 @@ function GhostSpeedCalculator({
   const [isRecording, setIsRecording] = useState(false);
   const [calculatedBPM, setCalculatedBPM] = useState<number | null>(null);
   const [calculatedSpeed, setCalculatedSpeed] = useState<number | null>(null);
-  const [detectedSpeed, setDetectedSpeed] = useState<GhostSpeed | "unknown">(
-    "unknown"
-  );
+  const [detectedSpeeds, setDetectedSpeeds] = useState<SpeedCategory[]>([]);
 
   // Estado para calcular média dos últimos N pressionamentos
   const MAX_SAMPLES = 5; // Número máximo de amostras para calcular a média
@@ -55,18 +53,18 @@ function GhostSpeedCalculator({
 
   // Determinar a categoria de velocidade com base na velocidade
   const determineSpeedCategory = useCallback(
-    (speedInMS: number): GhostSpeed | "unknown" => {
+    (speedInMS: number): SpeedCategory | "unknown" => {
       // Velocidades muito baixas geralmente indicam fantasmas como Deogen
       if (speedInMS < 1.4) {
-        return "variableSpeed";
+        return "slow"; // treat very low as slow
       }
 
       // Considerando uma pequena margem de erro
       if (speedInMS >= 1.4 && speedInMS < 1.55) return "slow";
-      if (speedInMS >= 1.55 && speedInMS < 1.65) return "verySlow";
+      if (speedInMS >= 1.55 && speedInMS < 1.65) return "normal";
       if (speedInMS >= 1.65 && speedInMS <= 1.8) return "normal";
       if (speedInMS > 1.8 && speedInMS <= 2.1) return "fast";
-      if (speedInMS > 2.1) return "veryFast";
+      if (speedInMS > 2.1) return "fast";
       return "unknown";
     },
     []
@@ -103,12 +101,19 @@ function GhostSpeedCalculator({
         setCalculatedSpeed(speed);
 
         // Determinar categoria de velocidade
-        const category = determineSpeedCategory(speed);
-        setDetectedSpeed(category);
+        const primary = determineSpeedCategory(speed);
+        // definir lista de categorias adjacentes
+        const mapAdj: Record<SpeedCategory, SpeedCategory[]> = {
+          slow: ["slow", "normal"],
+          normal: ["slow", "normal", "fast"],
+          fast: ["normal", "fast"],
+        };
+        const list = primary && primary !== "unknown" ? mapAdj[primary] : [];
+        setDetectedSpeeds(list);
 
-        // Notificar o callback se fornecido
+        // Notificar o callback com velocidade em m/s
         if (onDetectSpeed) {
-          onDetectSpeed(category);
+          onDetectSpeed(speed);
         }
       }
 
@@ -186,7 +191,7 @@ function GhostSpeedCalculator({
     setTimestamps([]);
     setCalculatedBPM(null);
     setCalculatedSpeed(null);
-    setDetectedSpeed("unknown");
+    setDetectedSpeeds([]);
     lastKeyPressTime.current = 0;
   }, []);
 
@@ -202,36 +207,22 @@ function GhostSpeedCalculator({
     };
   }, [handleGhostSpeedAction]);
 
-  // Mapear categorias de velocidade para descrições amigáveis
+  // Mapeia descrições para nossas três categorias
   const speedCategoryDescriptions = useMemo(
-    () => ({
-      verySlow: "Muito Lento",
-      slow: "Lento",
-      normal: "Normal",
-      fast: "Rápido",
-      veryFast: "Muito Rápido",
-      variableSpeed: "Velocidade Variável",
-      unknown: "Desconhecido",
-    }),
+    () => ({ slow: "Lento", normal: "Normal", fast: "Rápido" }),
     []
   );
 
   // Classes de cores para as categorias de velocidade
   const getSpeedBadgeClass = useCallback(
-    (speed: GhostSpeed | "unknown"): string => {
+    (speed: SpeedCategory | "unknown"): string => {
       switch (speed) {
-        case "verySlow":
-          return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
         case "slow":
           return "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200";
         case "normal":
           return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
         case "fast":
           return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-        case "veryFast":
-          return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-        case "variableSpeed":
-          return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
         default:
           return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
       }
@@ -242,12 +233,9 @@ function GhostSpeedCalculator({
   // Velocidades de referência para cada categoria
   const speedReferenceValues = useMemo(
     () => ({
-      verySlow: 1.5,
-      slow: 1.6,
+      slow: 1.4,
       normal: 1.7,
       fast: 2.0,
-      veryFast: 2.5,
-      variableSpeed: 1.0,
     }),
     []
   );
@@ -277,16 +265,17 @@ function GhostSpeedCalculator({
         </div>
 
         <div className="mt-3">
-          <p className="text-sm text-muted-foreground">Categoria:</p>
-          <div className="mt-1">
-            <Badge
-              variant="secondary"
-              className={`text-sm px-3 py-1 ${getSpeedBadgeClass(
-                detectedSpeed
-              )}`}
-            >
-              {speedCategoryDescriptions[detectedSpeed]}
-            </Badge>
+          <p className="text-sm text-muted-foreground">Categoria(s):</p>
+          <div className="mt-1 flex space-x-2">
+            {detectedSpeeds.map((cat) => (
+              <Badge
+                key={cat}
+                variant="secondary"
+                className={`text-sm px-3 py-1 ${getSpeedBadgeClass(cat)}`}
+              >
+                {speedCategoryDescriptions[cat]}
+              </Badge>
+            ))}
           </div>
         </div>
 
@@ -345,16 +334,18 @@ function GhostSpeedCalculator({
 
       <div className="border rounded-md p-4">
         <h4 className="text-sm font-semibold mb-3">Guia de Velocidades:</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-1 mb-4">
           {Object.entries(speedReferenceValues).map(([speed, value]) => (
             <div
               key={speed}
               className={`px-1 py-2 text-center rounded-md text-xs border ${
-                speed === detectedSpeed ? "border-2 border-primary" : ""
-              } ${getSpeedBadgeClass(speed as GhostSpeed)}`}
+                detectedSpeeds.includes(speed as SpeedCategory)
+                  ? "border-2 border-primary"
+                  : ""
+              } ${getSpeedBadgeClass(speed as SpeedCategory)}`}
             >
               <div className="font-medium truncate">
-                {speedCategoryDescriptions[speed as GhostSpeed]}
+                {speedCategoryDescriptions[speed as SpeedCategory]}
               </div>
               <div className="mt-1">{value.toFixed(1)} m/s</div>
               <div>{Math.round(calculateBPM(value))} BPM</div>

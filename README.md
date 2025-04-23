@@ -14,6 +14,8 @@
 
 O Phasmo Helper foi desenvolvido para auxiliar jogadores de Phasmophobia a terem uma experiência mais completa e eficiente durante as investigações paranormais. Com ferramentas intuitivas e informações detalhadas, ajudamos você a identificar fantasmas, planejar estratégias e sobreviver ao sobrenatural.
 
+**Endpoint de dados:** https://github.com/hhs0001/phasmo-helper-data
+
 Este aplicativo de código aberto foi criado com Tauri, React e TypeScript, proporcionando uma experiência rápida e nativa para Windows.
 
 ## ✨ Principais Recursos

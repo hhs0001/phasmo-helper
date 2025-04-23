@@ -52,9 +52,12 @@ jobs:
           releaseName: 'App v__VERSION__'
           releaseBody: |
             ## Novidades desta atualização
-              - Cálculo da velocidade do fantasma usando metrônomo: agora é possível calcular a velocidade do fantasma utilizando um metrônomo integrado
-              - Navegação automática para a aba de velocidade: agora quando a tecla de atalho é pressionada em qualquer página do app, o sistema navega automaticamente para a aba de "Velocidade e LoS" e inicia a gravação da velocidade do fantasma.
-                
+            - Refatoração: substituição de GhostSpeed por SpeedCategory e ajustes nos hooks e store
+            - Unidade de filtragem de velocidade agora em m/s e conversão para BPM
+            - Melhoria no GhostSpeedCalculator: categorias simplificadas (slow, normal, fast), debounce e feedback sonoro
+            - Atualização da URL da API de fantasmas para o repositório raw do GitHub
+            - Ajuste de capabilities default.json com novo endpoint HTTP
+            
             Veja os assets abaixo para baixar e instalar esta versão.
           releaseDraft: true
           prerelease: false

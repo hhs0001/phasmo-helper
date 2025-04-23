@@ -13,8 +13,6 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ShowInfo from "@/components/show-info";
 import GameTimers from "@/components/game-timers";
@@ -30,7 +28,7 @@ import {
   PlayIcon,
   StopIcon,
 } from "@radix-ui/react-icons";
-import { Evidence, GameMode, Ghost, GhostSpeed } from "@/types/ghost-schema";
+import { Evidence, GameMode, Ghost } from "@/types/ghost-schema";
 import { useGhostStore } from "@/stores/ghost-store";
 import { SkullIcon } from "lucide-react";
 import GhostCard from "@/components/ghost-card";
@@ -40,7 +38,6 @@ export default function GhostsPage() {
     possibleGhosts,
     allEvidences,
     evidenceTranslation,
-    speedTranslations,
     formatSpeedDescription,
     formatSanityThreshold,
     isGuaranteedEvidence,
@@ -51,12 +48,24 @@ export default function GhostsPage() {
     resetFilters,
     filterOptions,
     toggleEvidenceInclusion,
-    toggleSpeedFilter,
+    updateSpeedFilter,
     toggleLOSFilter,
     updateSanityThreshold,
     getEvidenceInclusionState,
     ghostsMap,
   } = useGhostData();
+  // Constantes para conversão entre m/s e BPM
+  const BPM_MIN = 20;
+  const BPM_MAX = 220;
+  // Converter os valores de filterOptions.speedFilter (m/s) para BPM para display
+  const bpmMinDisplay =
+    filterOptions.speedFilter.min !== null
+      ? Math.round((filterOptions.speedFilter.min * 60) / 0.85)
+      : BPM_MIN;
+  const bpmMaxDisplay =
+    filterOptions.speedFilter.max !== null
+      ? Math.round((filterOptions.speedFilter.max * 60) / 0.85)
+      : BPM_MAX;
 
   const { gameMode, setGameMode } = useGhostStore();
   const { config } = useAppConfig();
@@ -118,6 +127,8 @@ export default function GhostsPage() {
       const updated = await refreshFromAPI();
       if (updated) {
         toast.success("Dados atualizados com sucesso!");
+      } else if (typeof updated === "string") {
+        toast.error("Erro ao atualizar dados");
       } else {
         toast.info("Os dados já estão atualizados.");
       }
@@ -455,35 +466,31 @@ export default function GhostsPage() {
         {/* Tab de velocidade */}
         <TabsContent value="speed" className="p-4 bg-card rounded-md border">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Filtro de velocidade em m/s */}
             <div>
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">
-                  Categoria de Velocidade
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {Object.keys(speedTranslations).map((speed) => (
-                    <div key={speed} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`speed-${speed}`}
-                        checked={filterOptions.speed[speed as GhostSpeed]}
-                        onCheckedChange={() =>
-                          toggleSpeedFilter(speed as GhostSpeed)
-                        }
-                      />
-                      <Label
-                        htmlFor={`speed-${speed}`}
-                        className="cursor-pointer"
-                      >
-                        {speedTranslations[speed as GhostSpeed]}
-                      </Label>
-                    </div>
-                  ))}
+                <h3 className="text-lg font-semibold mb-2">Velocidade (BPM)</h3>
+                <div className="flex justify-between items-center mb-2">
+                  <span>{bpmMinDisplay} BPM</span>
+                  <span>{bpmMaxDisplay} BPM</span>
                 </div>
+                <Slider
+                  min={BPM_MIN}
+                  max={BPM_MAX}
+                  step={1}
+                  value={[bpmMinDisplay, bpmMaxDisplay]}
+                  onValueChange={([minBpm, maxBpm]) =>
+                    updateSpeedFilter(
+                      (minBpm * 0.85) / 60,
+                      (maxBpm * 0.85) / 60
+                    )
+                  }
+                />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Selecione as categorias de velocidade a incluir.
+                  Selecione o intervalo de BPM para filtrar fantasmas por
+                  velocidade.
                 </p>
               </div>
-
               <div>
                 <h3 className="text-lg font-semibold mb-2">
                   Line of Sight (LoS)
@@ -507,20 +514,9 @@ export default function GhostsPage() {
             {/* Integrando a calculadora de velocidade na aba com filtragem automática */}
             <div className="border rounded-md p-4 bg-card/50">
               <GhostSpeedCalculator
-                onDetectSpeed={(speed) => {
-                  if (speed === "unknown") return;
-
-                  // Resetar todas as categorias de velocidade primeiro
-                  Object.keys(filterOptions.speed).forEach((s) => {
-                    if (filterOptions.speed[s as GhostSpeed]) {
-                      toggleSpeedFilter(s as GhostSpeed);
-                    }
-                  });
-
-                  // Ativar apenas a categoria detectada
-                  if (!filterOptions.speed[speed]) {
-                    toggleSpeedFilter(speed);
-                  }
+                onDetectSpeed={(speedInMS) => {
+                  // Ativar filtro numérico para valor detectado
+                  updateSpeedFilter(speedInMS, speedInMS);
 
                   // Muda para a aba de velocidade para mostrar o resultado
                   if (activeTab !== "speed") {

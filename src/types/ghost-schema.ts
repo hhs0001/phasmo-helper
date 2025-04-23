@@ -21,14 +21,13 @@ export const EvidenceSchema = z.enum([
 
 export const InclusionStateSchema = z.enum(["include", "exclude", "neutral"]);
 
-export const GhostSpeedSchema = z.enum([
-  "verySlow",
-  "slow",
-  "normal",
-  "fast",
-  "veryFast",
-  "variableSpeed",
-]);
+// Definindo categorias simplificadas de velocidade
+export const SpeedCategorySchema = z.enum(["slow", "normal", "fast"]);
+// Esquema de range de velocidade em m/s
+export const SpeedRangeSchema = z.object({
+  min: z.number().describe("Velocidade mínima em m/s"),
+  max: z.number().describe("Velocidade máxima em m/s"),
+});
 
 // Esquemas para tipos mais complexos
 export const SpeedDetailsSchema = z.object({
@@ -67,7 +66,7 @@ export const GhostSchema = z.object({
   weaknesses: z.string(),
   behaviors: z.array(GhostBehaviorSchema),
   huntThreshold: z.number().describe("% de sanidade para começar a caçar"),
-  speed: GhostSpeedSchema,
+  speedRange: SpeedRangeSchema,
   hasLOS: z
     .boolean()
     .describe("Se o fantasma acelera quando tem linha de visão com o jogador"),
@@ -82,7 +81,11 @@ export const GhostDataSchema = z.object({
 
 export const FilterOptionsSchema = z.object({
   evidenceInclusion: z.record(EvidenceSchema, InclusionStateSchema),
-  speed: z.record(GhostSpeedSchema, z.boolean()),
+  // Filtro de velocidade em m/s (min e max)
+  speedFilter: z.object({
+    min: z.number().nullable().describe("Velocidade mínima em m/s"),
+    max: z.number().nullable().describe("Velocidade máxima em m/s"),
+  }),
   hasLOS: InclusionStateSchema,
   huntThreshold: z.object({
     min: z.number().nullable(),
@@ -94,7 +97,7 @@ export const FilterOptionsSchema = z.object({
 export type GameMode = z.infer<typeof GameModeSchema>;
 export type Evidence = z.infer<typeof EvidenceSchema>;
 export type InclusionState = z.infer<typeof InclusionStateSchema>;
-export type GhostSpeed = z.infer<typeof GhostSpeedSchema>;
+export type SpeedCategory = z.infer<typeof SpeedCategorySchema>;
 export type SpeedDetails = z.infer<typeof SpeedDetailsSchema>;
 export type GhostBehavior = z.infer<typeof GhostBehaviorSchema>;
 export type Media = z.infer<typeof MediaSchema>;

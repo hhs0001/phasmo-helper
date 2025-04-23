@@ -47,7 +47,8 @@ export async function setGhost(key: string, value: any): Promise<void> {
 }
 
 // URL da API de dados do Phasmophobia
-const GHOST_API_URL = "https://67f6ffce42d6c71cca63d338.mockapi.io/ghosts";
+const GHOST_API_URL =
+  "https://raw.githubusercontent.com/hhs0001/phasmo-helper-data/refs/heads/main/ghosts/pt-br.json";
 
 export async function getGhost(
   forceUpdate: boolean = false
@@ -129,7 +130,16 @@ export async function getGhost(
     const lastUpdate =
       ((await ghostStore!.get("lastUpdate")) as string | null) || null;
 
-    // Criar o objeto de dados sem validação em caso de erro
+    //testa o schema para ver se o local está atualizado:
+    try {
+      GhostDataSchema.parse({ ghosts, lastUpdate });
+    } catch (validationError) {
+      console.error(
+        "Erro na validação dos dados dos fantasmas armazenados localmente:",
+        validationError
+      );
+      throw new Error("Os dados locais não estão no formato esperado");
+    }
     return {
       ghosts,
       lastUpdate,
