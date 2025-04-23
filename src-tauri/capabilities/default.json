@@ -45,7 +45,7 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://*.mockapi.io"
+          "url": "https://raw.githubusercontent.com/hhs0001/phasmo-helper-data/*"
         }
       ]
     }

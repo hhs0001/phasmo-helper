@@ -4,11 +4,11 @@ import {
   GameMode,
   Evidence,
   InclusionState,
-  GhostSpeed,
   Ghost,
   GhostData,
   FilterOptions,
 } from "@/types/ghost-schema";
+import { toast } from "sonner";
 
 // Estado inicial para as opções de filtro
 const DEFAULT_FILTER_OPTIONS: FilterOptions = {
@@ -21,13 +21,9 @@ const DEFAULT_FILTER_OPTIONS: FilterOptions = {
     FreezingTemps: "neutral",
     DotsProjector: "neutral",
   },
-  speed: {
-    verySlow: false,
-    slow: false,
-    normal: false,
-    fast: false,
-    veryFast: false,
-    variableSpeed: false,
+  speedFilter: {
+    min: null,
+    max: null,
   },
   hasLOS: "neutral",
   huntThreshold: {
@@ -50,11 +46,11 @@ interface GhostState {
   setGameMode: (mode: GameMode) => void;
   selectGhost: (id: string | null) => void;
   toggleEvidenceInclusion: (evidence: Evidence) => void;
-  toggleSpeedFilter: (speed: GhostSpeed) => void;
+  updateSpeedFilter: (min: number | null, max: number | null) => void;
   toggleLOSFilter: () => void;
   updateSanityThreshold: (min: number | null, max: number | null) => void;
   resetFilters: () => void;
-  refreshFromAPI: () => Promise<boolean>;
+  refreshFromAPI: () => Promise<boolean | Error>;
   initialize: () => Promise<void>;
   updatePossibleGhosts: () => void;
 
@@ -114,18 +110,13 @@ export const useGhostStore = create<GhostState>((set, get) => ({
     get().updatePossibleGhosts();
   },
 
-  toggleSpeedFilter: (speed: GhostSpeed) => {
+  updateSpeedFilter: (min: number | null, max: number | null) => {
     set((state) => ({
       filterOptions: {
         ...state.filterOptions,
-        speed: {
-          ...state.filterOptions.speed,
-          [speed]: !state.filterOptions.speed[speed],
-        },
+        speedFilter: { min, max },
       },
     }));
-
-    // Recalcula os fantasmas possíveis após mudar o filtro
     get().updatePossibleGhosts();
   },
 
@@ -175,7 +166,7 @@ export const useGhostStore = create<GhostState>((set, get) => ({
     get().updatePossibleGhosts();
   },
 
-  refreshFromAPI: async (): Promise<boolean> => {
+  refreshFromAPI: async (): Promise<boolean | Error> => {
     set({ isLoading: true });
     try {
       const data = await getGhost(true);
@@ -189,7 +180,7 @@ export const useGhostStore = create<GhostState>((set, get) => ({
             ? err
             : new Error("Erro ao atualizar dados dos fantasmas"),
       });
-      return false;
+      return err as Error;
     } finally {
       set({ isLoading: false });
     }
@@ -202,6 +193,9 @@ export const useGhostStore = create<GhostState>((set, get) => ({
       set({ ghostData: data });
       get().updatePossibleGhosts();
     } catch (err) {
+      toast.error(
+        "A maneira como os fantasmas são carregados mudou. Por favor, atualize com a API novamente."
+      );
       set({
         error:
           err instanceof Error
@@ -383,14 +377,12 @@ export const useGhostStore = create<GhostState>((set, get) => ({
         return false;
       }
 
-      // Filtragem por velocidade
-      // Se algum filtro de velocidade está ativado, verificamos se o fantasma corresponde
-      const hasAnySpeedFilter = Object.values(filterOptions.speed).some(
-        (v) => v
-      );
-
-      if (hasAnySpeedFilter && !filterOptions.speed[ghost.speed]) {
-        return false;
+      // Filtragem por velocidade em m/s
+      if (filterOptions.speedFilter.min !== null) {
+        if (ghost.speedRange.max < filterOptions.speedFilter.min) return false;
+      }
+      if (filterOptions.speedFilter.max !== null) {
+        if (ghost.speedRange.min > filterOptions.speedFilter.max) return false;
       }
 
       // Filtragem por Line of Sight (LoS)

@@ -4,7 +4,7 @@ import {
   Evidence,
   GameMode,
   InclusionState,
-  GhostSpeed,
+  SpeedCategory,
 } from "@/types/ghost-schema";
 
 /**
@@ -44,16 +44,6 @@ export function useGhostData() {
     GhostWriting: "Escrita Fantasma",
     FreezingTemps: "Temperaturas Baixas",
     DotsProjector: "D.O.T.S.",
-  };
-
-  // Tradução de velocidades
-  const speedTranslations: Record<GhostSpeed, string> = {
-    verySlow: "Muito Lento",
-    slow: "Lento",
-    normal: "Normal",
-    fast: "Rápido",
-    veryFast: "Muito Rápido",
-    variableSpeed: "Velocidade Variável",
   };
 
   // Tradução de modos de jogo
@@ -97,12 +87,13 @@ export function useGhostData() {
     return `${ghost.huntThreshold}%`;
   };
 
-  // Função para obter a tradução da velocidade do fantasma
-  const getSpeedTranslation = (ghost: Ghost): string => {
-    return (
-      speedTranslations[ghost.speed] +
-      (ghost.hasLOS ? " (acelera com LOS)" : "")
-    );
+  // Função para obter as categorias de velocidade do fantasma
+  const getSpeedCategories = (ghost: Ghost): SpeedCategory[] => {
+    const { min, max } = ghost.speedRange;
+    const toCategory = (v: number): SpeedCategory =>
+      v <= 1.5 ? "slow" : v <= 3 ? "normal" : "fast";
+    const cats = new Set<SpeedCategory>([toCategory(min), toCategory(max)]);
+    return Array.from(cats);
   };
 
   // Função para obter o ícone do estado de inclusão
@@ -130,7 +121,6 @@ export function useGhostData() {
     filterOptions: state.filterOptions,
     allEvidences,
     evidenceTranslation,
-    speedTranslations,
     gameModeTranslation,
     inclusionStateTranslation,
 
@@ -138,7 +128,7 @@ export function useGhostData() {
     setGameMode: state.setGameMode,
     selectGhost: state.selectGhost,
     toggleEvidenceInclusion: state.toggleEvidenceInclusion,
-    toggleSpeedFilter: state.toggleSpeedFilter,
+    updateSpeedFilter: state.updateSpeedFilter,
     toggleLOSFilter: state.toggleLOSFilter,
     updateSanityThreshold: state.updateSanityThreshold,
     resetFilters: state.resetFilters,
@@ -147,7 +137,7 @@ export function useGhostData() {
     // Funções auxiliares
     getEvidenceInclusionState: state.getEvidenceInclusionState,
     getInclusionStateIcon,
-    getSpeedTranslation,
+    getSpeedCategories,
     isGuaranteedEvidence: state.isGuaranteedEvidence,
     getPossibleEvidenceCombinations: state.getPossibleEvidenceCombinations,
     formatSpeedDescription,
@@ -176,7 +166,7 @@ export function useGhost() {
     setGameMode: state.setGameMode,
     selectGhost: state.selectGhost,
     toggleEvidenceInclusion: state.toggleEvidenceInclusion,
-    toggleSpeedFilter: state.toggleSpeedFilter,
+    updateSpeedFilter: state.updateSpeedFilter,
     toggleLOSFilter: state.toggleLOSFilter,
     updateSanityThreshold: state.updateSanityThreshold,
     resetFilters: state.resetFilters,
